@@ -1,7 +1,7 @@
 RUN = docker run --rm -v $(CURDIR):/usr/src/messager -w /usr/src/messager openjdk:16-slim
 
-Messager.class: Messager.java
+Messager: Messager.java Receiver.java Sender.java
 	$(RUN) javac $^
 
-run: Messager.class
+run: Messager
 	$(RUN) java Messager

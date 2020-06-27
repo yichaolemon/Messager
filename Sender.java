@@ -1,0 +1,31 @@
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.ServerSocket;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.util.Scanner;
+import java.util.Date;
+
+public class Sender {
+	private Socket senderSkt;
+	private PrintWriter msgStream;
+
+	public void run() throws Exception {
+		Scanner usrSysInput = new Scanner(System.in);
+		String usrMsg = "";
+		while (true) {
+			String line = usrSysInput.nextLine();
+			if (line == "\n") {
+				 msgStream.write(usrMsg);
+				 usrMsg = "";
+			} else {
+				usrMsg = usrMsg + line;
+			}
+		}
+	}
+
+	public Sender (InetAddress dstAddr) throws Exception {
+		senderSkt = new Socket (dstAddr, Receiver.SERVER_PORT);
+		msgStream = new PrintWriter (senderSkt.getOutputStream());
+	}
+}
