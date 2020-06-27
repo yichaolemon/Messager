@@ -6,6 +6,7 @@ import java.util.Date;
 import java.text.SimpleDateFormat;
 
 public class Receiver extends Thread {
+	// NOTE: Port must be exposed by Docker
 	public static final int SERVER_PORT = 5000;
 	public void run() {
 		ServerSocket serverSkt;

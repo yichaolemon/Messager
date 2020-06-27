@@ -1,4 +1,4 @@
 #!/bin/bash
 
 make &&
-docker run -it -v $PWD:/usr/src/messager -w /usr/src/messager openjdk:16-slim java Messager $@
+docker run -it -v $PWD:/usr/src/messager -w /usr/src/messager -p 5000:5000 openjdk:16-slim java Messager $@
