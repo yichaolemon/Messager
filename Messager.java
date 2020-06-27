@@ -9,7 +9,11 @@ public class Messager {
     // System.out.println("Hello Totosheen");
     Receiver receiver = new Receiver();
     receiver.start(); // start the receiver thread
-    Sender sender = new Sender(InetAddress.getByName(args[0]));
+    Sender sender;
+    while (true) {
+    	sender = new Sender(InetAddress.getByName(args[0]));
+    	break;
+    }
     sender.run();
   }
 }

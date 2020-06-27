@@ -20,7 +20,9 @@ public class Receiver extends Thread {
 			String rcvdMsg = "";
 			Socket connectSkt;
 			try {
+				System.out.println("Receiver: Trying to accept");
 				connectSkt = serverSkt.accept();
+				System.out.println("Receiver: Accepted new sender connection");
 			} catch (Exception e) {
 				e.printStackTrace();
 				return;
