@@ -36,7 +36,7 @@ public class Receiver extends Thread {
 			}
 			while (inStream.hasNextLine()) {
 				String nl = inStream.nextLine();
-				if (nl == "---") {
+				if (nl.equals("---")) {
 					break;
 				}
 				rcvdMsg = rcvdMsg + nl + "\n";
