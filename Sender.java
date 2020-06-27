@@ -18,6 +18,7 @@ public class Sender {
 			String line = usrSysInput.nextLine();
 			if (line == "\n") {
 				 msgStream.write(usrMsg);
+				 msgStream.flush();
 				 usrMsg = "";
 			} else {
 				usrMsg = usrMsg + line;
