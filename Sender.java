@@ -10,8 +10,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class Sender extends Thread {
 	private InetAddress dstInetAddr;
 	private StringBuilder msg;
-	final Lock lock = new ReentrantLock();
-	final Condition strNotEmpty = lock.newCondition();
+	private final Lock lock = new ReentrantLock();
+	private final Condition strNotEmpty = lock.newCondition();
 
 	public void writeMsg(String line) {
 		lock.lock();
