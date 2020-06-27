@@ -11,8 +11,12 @@ public class Messager {
     receiver.start(); // start the receiver thread
     Sender sender;
     while (true) {
-    	sender = new Sender(InetAddress.getByName(args[0]));
-    	break;
+    	try {
+    		sender = new Sender(InetAddress.getByName(args[0]));
+    		break;
+    	} catch (Exception e) {
+
+    	}
     }
     sender.run();
   }
