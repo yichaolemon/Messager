@@ -11,6 +11,7 @@ public class Sender {
 	private PrintWriter msgStream;
 
 	public void run() throws Exception {
+		System.out.println("Sender: connected and starting to send");
 		Scanner usrSysInput = new Scanner(System.in);
 		String usrMsg = "";
 		while (true) {
