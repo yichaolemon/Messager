@@ -17,7 +17,6 @@ public class Receiver extends Thread {
 			return;
 		}
 		while (true) {
-			String rcvdMsg = "";
 			Socket connectSkt;
 			try {
 				System.out.println("Receiver: Trying to accept");
@@ -37,16 +36,23 @@ public class Receiver extends Thread {
 			// Loop over all messages
 			while (inStream.hasNextLine()) {
 				// Loop over lines in a single message
+				/* 
+				String rcvdMsg = "";
 				while (inStream.hasNextLine()) {
 					String nl = inStream.nextLine();
 					if (nl.equals("---")) {
 						break;
+					} else if (nl.isEmpty()) {
+						continue;
 					}
+
 					rcvdMsg = rcvdMsg + nl + "\n";
 				}
+				*/
+				String nl = inStream.nextLine();
 				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
 				Date date = new Date(System.currentTimeMillis());
-				System.out.println(formatter.format(date)+": "+rcvdMsg);
+				System.out.println(formatter.format(date)+": "+nl+"\n");
 			}
 		}
 	}

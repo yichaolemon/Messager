@@ -10,20 +10,22 @@ public class Sender {
 	private Socket senderSkt;
 	private PrintWriter msgStream;
 	private String delim;
-
+	// Single new line as message separator -- signaling end of the message. 
 	public void run() throws Exception {
 		System.out.println("Sender: connected and starting to send");
 		Scanner usrSysInput = new Scanner(System.in);
-		String usrMsg = "";
+		// String usrMsg = "";
 		while (usrSysInput.hasNextLine()) {
 			String line = usrSysInput.nextLine();
-			if (line == "") {
-				msgStream.write(usrMsg+delim);
-				msgStream.flush();
-				usrMsg = "";
-			} else {
-				usrMsg = usrMsg + line + "\n";
-			}
+			msgStream.write(line+"\n");
+			msgStream.flush();
+			// if (line == "") {
+			// 	msgStream.write(usrMsg+delim);
+			// 	msgStream.flush();
+			// 	usrMsg = "";
+			// } else {
+			// 	usrMsg = usrMsg + line + "\n";
+			// }
 		}
 	}
 
