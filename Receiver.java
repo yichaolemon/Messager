@@ -4,6 +4,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Date;
 import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 
 public class Receiver extends Thread {
 	// NOTE: Port must be exposed by Docker
@@ -50,9 +53,9 @@ public class Receiver extends Thread {
 				}
 				*/
 				String nl = inStream.nextLine();
-				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
-				Date date = new Date(System.currentTimeMillis());
-				System.out.println(formatter.format(date)+": "+nl+"\n");
+        ZonedDateTime now = ZonedDateTime.now();
+				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+				System.out.println(formatter.format(now) + ":" +nl);
 			}
 		}
 	}
