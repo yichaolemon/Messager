@@ -14,12 +14,13 @@ public class Sender {
 		System.out.println("Sender: connected and starting to send");
 		Scanner usrSysInput = new Scanner(System.in);
 		String usrMsg = "";
-		while (true) {
+		while (usrSysInput.hasNextLine()) {
 			String line = usrSysInput.nextLine();
-			if (line == "\n") {
-				 msgStream.write(usrMsg);
-				 msgStream.flush();
-				 usrMsg = "";
+			if (line == "" || line == "\n") {
+				System.out.println("Sending!" + usrMsg);
+				msgStream.write(usrMsg + "\n");
+				msgStream.flush();
+				usrMsg = "";
 			} else {
 				usrMsg = usrMsg + line;
 			}
