@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 public class Receiver extends Thread {
 	// NOTE: Port must be exposed by Docker
@@ -53,7 +54,7 @@ public class Receiver extends Thread {
 				}
 				*/
 				String nl = inStream.nextLine();
-        ZonedDateTime now = ZonedDateTime.now();
+        ZonedDateTime now = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
 				DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 				System.out.println(formatter.format(now) + ":" +nl);
 			}
