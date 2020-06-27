@@ -17,8 +17,7 @@ public class Sender {
 		String usrMsg = "";
 		while (usrSysInput.hasNextLine()) {
 			String line = usrSysInput.nextLine();
-			if (line == "" || line == "\n") {
-				System.out.println("Sending!" + usrMsg);
+			if (line == "") {
 				msgStream.write(usrMsg+delim);
 				msgStream.flush();
 				usrMsg = "";
@@ -31,6 +30,6 @@ public class Sender {
 	public Sender (InetAddress dstAddr) throws Exception {
 		senderSkt = new Socket (dstAddr, Receiver.SERVER_PORT);
 		msgStream = new PrintWriter (senderSkt.getOutputStream(), true);
-		delim = "\n---\n";
+		delim = "---\n";
 	}
 }
