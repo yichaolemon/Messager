@@ -9,6 +9,7 @@ public class Messager {
     // System.out.println("Hello Totosheen");
     Receiver receiver = new Receiver();
     receiver.start(); // start the receiver thread
+    Thread.sleep(5000);
     Sender sender;
     while (true) {
     	try {
