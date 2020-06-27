@@ -30,7 +30,7 @@ public class Sender {
 
 	public Sender (InetAddress dstAddr) throws Exception {
 		senderSkt = new Socket (dstAddr, Receiver.SERVER_PORT);
-		msgStream = new PrintWriter (senderSkt.getOutputStream());
+		msgStream = new PrintWriter (senderSkt.getOutputStream(), true);
 		delim = "\n---\n";
 	}
 }
