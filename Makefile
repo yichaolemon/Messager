@@ -1,7 +1,7 @@
-RUN = docker run --rm -v $(CURDIR):/usr/src/messager -w /usr/src/messager -p 5000:5000 openjdk:16-slim
+RUN_X86 = docker run --rm -v $(CURDIR):/usr/src/messager -w /usr/src/messager -p 5000:5000 openjdk:16-slim
+RUN_ARM = docker run --rm -v $(CURDIR):/usr/src/messager -w /usr/src/messager -p 5000:5000 armv7/armhf-java8 
+Messager_X86: Messager.java Receiver.java Sender.java InputReader.java
+	$(RUN_X86) javac $^
 
-Messager: Messager.java Receiver.java Sender.java InputReader.java
-	$(RUN) javac $^
-
-run: Messager
-	$(RUN) java Messager 127.0.0.1
+Messager_ARM: Messager.java Receiver.java Sender.java InputReader.java
+	$(RUN_ARM) javac $^
