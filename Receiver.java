@@ -35,7 +35,11 @@ public class Receiver extends Thread {
 				return;
 			}
 			while (inStream.hasNextLine()) {
-				rcvdMsg = rcvdMsg + inStream.nextLine();
+				String nl = inStream.nextLine();
+				if (nl == "---") {
+					break;
+				}
+				rcvdMsg = rcvdMsg + nl + "\n";
 			}
 			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
 			Date date = new Date(System.currentTimeMillis());
