@@ -34,16 +34,20 @@ public class Receiver extends Thread {
 				e.printStackTrace();
 				return;
 			}
+			// Loop over all messages
 			while (inStream.hasNextLine()) {
-				String nl = inStream.nextLine();
-				if (nl.equals("---")) {
-					break;
+				// Loop over lines in a single message
+				while (inStream.hasNextLine()) {
+					String nl = inStream.nextLine();
+					if (nl.equals("---")) {
+						break;
+					}
+					rcvdMsg = rcvdMsg + nl + "\n";
 				}
-				rcvdMsg = rcvdMsg + nl + "\n";
+				SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
+				Date date = new Date(System.currentTimeMillis());
+				System.out.println(formatter.format(date)+": "+rcvdMsg);
 			}
-			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z");
-			Date date = new Date(System.currentTimeMillis());
-			System.out.println(formatter.format(date)+": "+rcvdMsg);
 		}
 	}
 }
