@@ -10,7 +10,7 @@ import java.util.List;
 
 public class MessageServer {
 
-	public static final int SERVER_PORT = 5100;
+	public static final int SERVER_PORT = 5000;
 
   static private class MessageScanner {
     Scanner sc;
