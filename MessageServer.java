@@ -43,7 +43,6 @@ public class MessageServer {
 
     public void run() {
       System.out.println("New connection established");
-      // server protocol 
       // save|content|dstAddr|
       // or fetch|timestamp|
       // (pipes in content are escaped as \| and backslashes are escaped as \\)
@@ -54,13 +53,17 @@ public class MessageServer {
         e.printStackTrace();
         return;
       }
-      String operation = sc.nextMessage();
+
       while (true) {
+        System.out.println("********");
+        String operation = sc.nextMessage();
         try {
-          if (operation.equals("save")) {
+          if (operation.equals("save") || operation.equals("\nsave")) {
             saveMessage(sc);
-          } else if (operation.equals("fetch")) {
+          } else if (operation.equals("fetch") || operation.equals("\nfetch")) {
             fetchMessage(sc);
+          } else {
+            System.out.println("operation="+operation);
           }
         } catch (Exception e) {
           e.printStackTrace();
@@ -88,7 +91,6 @@ public class MessageServer {
     private void saveMessage(MessageScanner sc) throws Exception {
       String content = sc.nextMessage();
       String addr = sc.nextMessage();
-      System.out.println("addr="+addr);
 
       Message message = new Message(
           UUID.randomUUID(),
