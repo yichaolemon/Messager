@@ -14,6 +14,7 @@ public class Sender extends Thread {
 	private final Lock lock = new ReentrantLock();
 	private final Condition strNotEmpty = lock.newCondition();
 	private Socket senderSkt;
+  private final int SERVER_PORT = 5100;
 
 	private class SReceiver extends Thread {
 		public void run() {
@@ -81,7 +82,7 @@ public class Sender extends Thread {
 		this.dstInetAddr = dstInetAddr;
 		msg = new StringBuilder();
 		try {
-			senderSkt = new Socket(dstInetAddr, 5000);
+			senderSkt = new Socket(dstInetAddr, SERVER_PORT);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
