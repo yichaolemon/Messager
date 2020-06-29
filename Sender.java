@@ -81,7 +81,7 @@ public class Sender extends Thread {
 		this.dstInetAddr = dstInetAddr;
 		msg = new StringBuilder();
 		try {
-			senderSkt = new Socket(dstInetAddr, 5000);
+			senderSkt = new Socket(dstInetAddr, 5100);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
