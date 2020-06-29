@@ -1,0 +1,4 @@
+#!/bin/bash
+
+make Messager_Server &&
+docker run -it -v $PWD:/usr/src/messager -w /usr/src/messager -p 5000:5000 armv7/armhf-java8 java MessageServer $@

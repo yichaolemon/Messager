@@ -1,19 +1,20 @@
 import java.time.ZonedDateTime;
 import java.util.UUID;
-
-public interface Storage {
-	public void storeMessage(Message message);
-	public Message loadMessage(UUID uuid);
-	public List<Message> loadMessageSince(InetAddress dstAddr, long timestamp);
-}
+import java.util.List;
+import java.util.Map;
+import java.net.InetAddress;
+import java.util.TreeMap;
+import java.util.SortedMap;
+import java.util.HashMap;
+import java.util.ArrayList;
 
 public class Database implements Storage {
 	private Map<UUID, Message> database = new HashMap<UUID, Message>();
-	private Map<InetAddress, SortedMap<Long, UUID>> timestampIndex = new HashMap<InetAddress, TreeMap<Long, UUID>>();
+	private Map<InetAddress, SortedMap<Long, UUID>> timestampIndex = new HashMap<InetAddress, SortedMap<Long, UUID>>();
 
 	public synchronized void storeMessage(Message message) {
 		database.put(message.getUuid(), message);
-		Map<Long, UUID> timeIndex = timestampIndex.get(message.getDstAddr());
+		SortedMap<Long, UUID> timeIndex = timestampIndex.get(message.getDstAddr());
 		if (timeIndex == null) {
 			timeIndex = new TreeMap<Long, UUID>();
 			timestampIndex.put(message.getDstAddr(), timeIndex);
@@ -31,7 +32,7 @@ public class Database implements Storage {
 			return null;
 		}
 		List<Message> messages = new ArrayList<Message>();
-		for (Map.Entry<Long, UUID> e: timeIndex.tailMap(new Long(timestamp))) {
+		for (Map.Entry<Long, UUID> e: timeIndex.tailMap(new Long(timestamp)).entrySet()) {
 			messages.add(loadMessage(e.getValue()));
 		}
 		return messages;

@@ -7,5 +7,5 @@ Messager_X86: Messager.java Receiver.java Sender.java InputReader.java
 Messager_ARM: Messager.java Receiver.java Sender.java InputReader.java
 	$(RUN_ARM) javac $^
 
-Messager_Server: Message.java Database.java MessageServer.java
+Messager_Server: Message.java Database.java Storage.java MessageServer.java
 	$(RUN_SERVER) javac $^
