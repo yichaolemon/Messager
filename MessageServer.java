@@ -43,7 +43,8 @@ public class MessageServer {
     public void run() {
       System.out.println("New connection established");
       // server protocol 
-      // save/fetch|content|dstAddr
+      // save|content|dstAddr
+      // or fetch|timestamp
       // (pipes in content are escaped as \| and backslashes are escaped as \\)
       MessageScanner sc;
       try {
@@ -89,6 +90,7 @@ public class MessageServer {
           InetAddress.getByName(addr),
           content);
       storage.storeMessage(message);
+      System.out.println("saved message: "+message.toString());
     }
 
     public ConnHandler(Socket skt, Storage storage) {
