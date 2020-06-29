@@ -1,5 +1,12 @@
 import java.util.UUID;
 import java.net.InetAddress;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.text.DateFormat;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 /* container class for messages */
 public class Message {
@@ -29,6 +36,16 @@ public class Message {
 	public String getContent() {
 		return content;
 	}
+
+  public String toContentString() {
+    StringBuilder stringBuilder = new StringBuilder();
+    DateFormat formatter = new SimpleDateFormat("@[MM/dd HH:mm:ss]: ");
+    Date date = new Date(this.getTimestamp());
+    stringBuilder.append(this.getSrcAddr().getHostAddress());
+    stringBuilder.append(formatter.format(date));
+    stringBuilder.append(this.getContent());
+    return stringBuilder.toString();
+  }
 
 	public String toString() {
 		StringBuilder stringBuilder = new StringBuilder();

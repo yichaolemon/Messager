@@ -1,3 +1,4 @@
+import java.lang.Integer;
 import java.util.regex.Pattern;
 import java.net.Socket;
 import java.io.InputStream;
@@ -56,18 +57,19 @@ public class MessageServer {
       }
 
       while (true) {
-        String operation = sc.nextMessage();
         try {
+          String operation = sc.nextMessage();
+
           if (operation.equals("save") || operation.equals("\nsave")) {
             saveMessage(sc);
           } else if (operation.equals("fetch") || operation.equals("\nfetch")) {
             fetchMessage(sc);
           } 
         } catch (Exception e) {
-          e.printStackTrace();
+          System.out.println("Connection closed by client");
           return;
         }
-        System.out.println("****   "+counter.toString()+"   ****");
+        System.out.println("****   "+Integer.toString(counter)+"   ****");
         counter += 1;
       }
     }
@@ -81,7 +83,7 @@ public class MessageServer {
         return;
       } else {
         for (Message msg: msgList) {
-          String msgString = msg.toString();
+          String msgString = msg.toContentString();
           // System.out.println(msgString);
           msgStream.write(msgString+"\n");
           msgStream.flush();
@@ -113,8 +115,8 @@ public class MessageServer {
 	public static void main(String[] args) throws Exception {
 		ServerSocket serverSkt = new ServerSocket(SERVER_PORT);
 		Storage storage = new Database();
-		while (true) {
-      System.out.println("Trying to establish a new connection");
+    System.out.println("Server set up, ready to ROCK!!");
+    while (true) {
 			Socket connectSkt = serverSkt.accept();
 			ConnHandler connHandler = new ConnHandler(connectSkt, storage);
 			connHandler.start(); 
