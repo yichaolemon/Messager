@@ -1,3 +1,4 @@
+import java.util.regex.Pattern;
 import java.net.Socket;
 import java.io.InputStream;
 import java.net.ServerSocket;
@@ -30,7 +31,7 @@ public class MessageServer {
 
     public MessageScanner(InputStream source) {
       // pipe
-      sc = new Scanner(source).useDelimiter("\\|");
+      sc = new Scanner(source).useDelimiter(Pattern.compile("\\|"));
     }
   }
 
@@ -43,8 +44,8 @@ public class MessageServer {
     public void run() {
       System.out.println("New connection established");
       // server protocol 
-      // save|content|dstAddr
-      // or fetch|timestamp
+      // save|content|dstAddr|
+      // or fetch|timestamp|
       // (pipes in content are escaped as \| and backslashes are escaped as \\)
       MessageScanner sc;
       try {
@@ -54,15 +55,17 @@ public class MessageServer {
         return;
       }
       String operation = sc.nextMessage();
-      try {
-        if (operation.equals("save")) {
-          saveMessage(sc);
-        } else if (operation.equals("fetch")) {
-          fetchMessage(sc);
+      while (true) {
+        try {
+          if (operation.equals("save")) {
+            saveMessage(sc);
+          } else if (operation.equals("fetch")) {
+            fetchMessage(sc);
+          }
+        } catch (Exception e) {
+          e.printStackTrace();
+          return;
         }
-      } catch (Exception e) {
-        e.printStackTrace();
-        return;
       }
     }
 
@@ -85,6 +88,8 @@ public class MessageServer {
     private void saveMessage(MessageScanner sc) throws Exception {
       String content = sc.nextMessage();
       String addr = sc.nextMessage();
+      System.out.println("addr="+addr);
+
       Message message = new Message(
           UUID.randomUUID(),
           System.currentTimeMillis(),
@@ -92,7 +97,7 @@ public class MessageServer {
           InetAddress.getByName(addr),
           content);
       storage.storeMessage(message);
-      System.out.println("saved message: "+message.toString());
+      System.out.print("saved message:\n"+message.toString());
     }
 
     public ConnHandler(Socket skt, Storage storage) {

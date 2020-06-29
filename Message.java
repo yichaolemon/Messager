@@ -32,11 +32,12 @@ public class Message {
 
 	public String toString() {
 		StringBuilder stringBuilder = new StringBuilder();
-		stringBuilder.append(uuid.toString()+"|");
-		stringBuilder.append(Long.toString(timestamp)+"|");
-		stringBuilder.append(srcAddr.toString()+"|");
-		stringBuilder.append(dstAddr.toString()+"|");
-		stringBuilder.append(content);
+    stringBuilder.append("Message:\n");
+		stringBuilder.append("\tUUID:\t"+uuid.toString()+"\n");
+		stringBuilder.append("\tTimestamp:\t"+Long.toString(timestamp)+"\n");
+		stringBuilder.append("\tsrcAddress:\t"+srcAddr.getHostAddress()+"\n");
+		stringBuilder.append("\tdstAddress:\t"+dstAddr.getHostAddress()+"\n");
+		stringBuilder.append("\tContent:\t"+content+"\n");
 		return stringBuilder.toString();
 	}
 
