@@ -40,6 +40,7 @@ public class MessageServer {
     private InetAddress dstAddr;
     private Socket skt;
     private Storage storage;
+    private int counter; 
 
     public void run() {
       System.out.println("New connection established");
@@ -55,20 +56,19 @@ public class MessageServer {
       }
 
       while (true) {
-        System.out.println("********");
         String operation = sc.nextMessage();
         try {
           if (operation.equals("save") || operation.equals("\nsave")) {
             saveMessage(sc);
           } else if (operation.equals("fetch") || operation.equals("\nfetch")) {
             fetchMessage(sc);
-          } else {
-            System.out.println("operation="+operation);
-          }
+          } 
         } catch (Exception e) {
           e.printStackTrace();
           return;
         }
+        System.out.println("****   "+counter.toString()+"   ****");
+        counter += 1;
       }
     }
 
@@ -106,6 +106,7 @@ public class MessageServer {
     public ConnHandler(Socket skt, Storage storage) {
       this.skt = skt;
       this.storage = storage;
+      this.counter = 0;
     }
   }
 
