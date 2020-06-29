@@ -82,6 +82,7 @@ public class MessageServer {
       } else {
         for (Message msg: msgList) {
           String msgString = msg.toString();
+          // System.out.println(msgString);
           msgStream.write(msgString+"\n");
           msgStream.flush();
         }
@@ -99,7 +100,7 @@ public class MessageServer {
           InetAddress.getByName(addr),
           content);
       storage.storeMessage(message);
-      System.out.print("saved message:\n"+message.toString());
+      // System.out.print("saved message:\n"+message.toString());
     }
 
     public ConnHandler(Socket skt, Storage storage) {
