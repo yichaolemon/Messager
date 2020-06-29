@@ -50,6 +50,7 @@ public class MessageServer {
       try {
         sc = new MessageScanner(skt.getInputStream());
       } catch (Exception e) {
+        e.printStackTrace();
         return;
       }
       String operation = sc.nextMessage();
@@ -60,6 +61,7 @@ public class MessageServer {
           fetchMessage(sc);
         }
       } catch (Exception e) {
+        e.printStackTrace();
         return;
       }
     }
