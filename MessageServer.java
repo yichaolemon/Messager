@@ -49,38 +49,45 @@ public class MessageServer {
     // socket's output stream.
     private class MessageReporter extends Thread {
 
+    	private PrintWriter msgStream;
+    	private Storage storage;
+    	private InetAddress dstAddr;
+      private boolean exit;
+
     	public void run() {
-    		while (true) {
-    			reportMessages(storage.loadMessageSince(dstAddr, maxTimestampSent+1, true));
-    		}
+    		while (!exit) {
+          reportMessages(storage.loadMessageSince(dstAddr, maxTimestampSent+1, true));
+        }
+        System.out.println("reporterThread exiting");
     	}
 
     	private long maxTimestampSent = 0;
 
     	private void reportMessages(List<Message> msgList) {
+        if (msgList == null) {
+          exit = true;
+          return;
+        } 
         for (Message msg: msgList) {
           String msgString = msg.toContentString();
-          System.out.println("writing message: "+msgString);
+          System.out.println("writing message: "+msgString+" at timestamp "+msg.getTimestamp());
           msgStream.write(msgString+"\n");
           msgStream.flush();
           maxTimestampSent = Long.max(maxTimestampSent, msg.getTimestamp());
         }
     	}
 
-    	private PrintWriter msgStream;
-    	private Storage storage;
-    	private InetAddress dstAddr;
-
     	public MessageReporter(PrintWriter msgStream, Storage storage, InetAddress dstAddr, long maxTimestampSent) {
     		this.msgStream = msgStream;
     		this.storage = storage;
     		this.dstAddr = dstAddr;
     		this.maxTimestampSent = maxTimestampSent;
+        this.exit = false;
     	}
     }
 
     public void run() {
-      System.out.println("New connection established");
+      System.out.println("Established connection with client at "+dstAddr.getHostAddress());
       // (pipes in content are escaped as \| and backslashes are escaped as \\)
       MessageScanner sc;
       try {
@@ -98,22 +105,23 @@ public class MessageServer {
         e.printStackTrace();
         return;
       }
-      MessageReporter reporter = new MessageReporter(
+      // reporter reports back messages to each connecting client 
+      MessageReporter reporterThread = new MessageReporter(
       	new PrintWriter(outputStream, true /*auto flushing*/),
       	storage,
       	dstAddr,
       	timestamp
       );
-      reporter.start();
+      reporterThread.start();
 
       while (true) {
         try {
           saveMessage(sc);
         } catch (Exception e) {
-          System.out.println("Connection closed by client");
+          System.out.println("****   connection closed by client "+dstAddr.getHostAddress()+"   ****");
+          reporterThread.interrupt();
           return;
         }
-        System.out.println("****   "+Integer.toString(counter)+"   ****");
         counter += 1;
       }
     }
@@ -129,7 +137,7 @@ public class MessageServer {
           InetAddress.getByName(addr),
           content);
       storage.storeMessage(message);
-      System.out.print("saved message:\n"+message.toString());
+      System.out.println("****   saved new message from "+dstAddr.getHostAddress()+"   ****");
     }
 
     public ConnHandler(Socket skt, Storage storage) {
