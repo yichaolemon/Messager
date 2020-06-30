@@ -1,4 +1,7 @@
 import java.time.ZonedDateTime;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.UUID;
 import java.util.List;
 import java.util.Map;
@@ -56,7 +59,12 @@ public class Database implements Storage {
 		try {
 			List<Message> messages;
 			while ((messages = loadMessageSinceOrNull(dstAddr, timestamp)) == null || !block) {
-				hasMoreMessages.await();
+        try {
+          hasMoreMessages.await();
+        } catch (Exception e) {
+          e.printStackTrace();
+          return null;
+        }
 			}
 			return messages;
 		} finally {

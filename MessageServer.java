@@ -1,3 +1,4 @@
+import java.io.OutputStream;
 import java.lang.Integer;
 import java.util.regex.Pattern;
 import java.net.Socket;
@@ -46,7 +47,7 @@ public class MessageServer {
     // MessageReporter waits for new data to send, and then sends it.
     // Only the MessageReporter thread is allowed to write to the
     // socket's output stream.
-    private MessageReporter extends Thread {
+    private class MessageReporter extends Thread {
     	public void run() {
     		while (true) {
     			reportMessages(storage.loadMessageSince(dstAddr, maxTimestampSent+1, true));
@@ -91,12 +92,19 @@ public class MessageServer {
       }
 
       long timestamp = Long.parseLong(sc.nextMessage());
+      OutputStream outputStream;
+      try {
+        outputStream = skt.getOutputStream();
+      } catch (Exception e) {
+        e.printStackTrace();
+        return;
+      }
       MessageReporter reporter = new MessageReporter(
-      	new PrintWriter(skt.getOutputStream(), true /*auto flushing*/),
+      	new PrintWriter(outputStream, true /*auto flushing*/),
       	storage,
       	dstAddr,
-      	timestamp,
-      )
+      	timestamp
+      );
       reporter.start();
 
       while (true) {
