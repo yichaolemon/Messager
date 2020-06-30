@@ -8,7 +8,7 @@ public class InputReader {
 		while (usrSysInput.hasNextLine()) {
 			// TODO: Check whether the nextline is empty 
 			String line = usrSysInput.nextLine();
-			sender.writeMsg(line+"\n");
+			sender.writeMsg(line);
 		}
 	}
 
