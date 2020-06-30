@@ -29,8 +29,6 @@ public class Sender extends Thread {
 				// Loop over all messages
 				while (inStream.hasNextLine()) {
 					String nl = inStream.nextLine();
-	        // ZonedDateTime now = ZonedDateTime.now().withZoneSameInstant(ZoneId.of("America/Los_Angeles"));
-					// DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 					System.out.println(nl);
 				}
 			}
