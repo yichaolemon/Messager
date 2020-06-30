@@ -48,6 +48,7 @@ public class MessageServer {
     // Only the MessageReporter thread is allowed to write to the
     // socket's output stream.
     private class MessageReporter extends Thread {
+
     	public void run() {
     		while (true) {
     			reportMessages(storage.loadMessageSince(dstAddr, maxTimestampSent+1, true));
@@ -59,7 +60,7 @@ public class MessageServer {
     	private void reportMessages(List<Message> msgList) {
         for (Message msg: msgList) {
           String msgString = msg.toContentString();
-          // System.out.println(msgString);
+          System.out.println("writing message: "+msgString);
           msgStream.write(msgString+"\n");
           msgStream.flush();
           maxTimestampSent = Long.max(maxTimestampSent, msg.getTimestamp());
@@ -90,7 +91,7 @@ public class MessageServer {
         e.printStackTrace();
         return;
       }
-
+      // at the start, at client, send the timestamp 
       long timestamp = Long.parseLong(sc.nextMessage());
       OutputStream outputStream;
       try {
@@ -140,10 +141,11 @@ public class MessageServer {
           InetAddress.getByName(addr),
           content);
       storage.storeMessage(message);
-      // System.out.print("saved message:\n"+message.toString());
+      System.out.print("saved message:\n"+message.toString());
     }
 
     public ConnHandler(Socket skt, Storage storage) {
+      this.dstAddr = skt.getInetAddress();
       this.skt = skt;
       this.storage = storage;
       this.counter = 0;
