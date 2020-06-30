@@ -81,8 +81,6 @@ public class MessageServer {
 
     public void run() {
       System.out.println("New connection established");
-      // save|content|dstAddr|
-      // or fetch|timestamp|
       // (pipes in content are escaped as \| and backslashes are escaped as \\)
       MessageScanner sc;
       try {
@@ -119,16 +117,6 @@ public class MessageServer {
         counter += 1;
       }
     }
-
-    // private void fetchMessage(MessageScanner sc, MessageReporter reporter) throws Exception {
-    //   PrintWriter msgStream = new PrintWriter(skt.getOutputStream(), true /*auto flushing*/);
-    //   List<Message> msgList = storage.loadMessageSince(skt.getInetAddress(), timestamp, false);
-    //   if (msgList == null) {
-    //     msgStream.write("<server msg>: no messages since timestamp\n");
-    //     return;
-    //   }
-    //   reporter.reportMessages(msgList);
-    // }
 
     private void saveMessage(MessageScanner sc) throws Exception {
       String content = sc.nextMessage();
