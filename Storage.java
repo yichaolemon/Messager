@@ -6,6 +6,7 @@ import java.net.InetAddress;
 public interface Storage {
 	public void storeMessage(Message message);
 	public Message loadMessage(UUID uuid);
-	public List<Message> loadMessageSince(InetAddress dstAddr, long timestamp);
+	// if block is true, this method waits until there are messages to return.
+	public List<Message> loadMessageSince(InetAddress dstAddr, long timestamp, boolean block);
 }
 

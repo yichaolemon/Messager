@@ -43,6 +43,40 @@ public class MessageServer {
     private Storage storage;
     private int counter; 
 
+    // MessageReporter waits for new data to send, and then sends it.
+    // Only the MessageReporter thread is allowed to write to the
+    // socket's output stream.
+    private MessageReporter extends Thread {
+    	public void run() {
+    		while (true) {
+    			reportMessages(storage.loadMessageSince(dstAddr, maxTimestampSent+1, true));
+    		}
+    	}
+
+    	private long maxTimestampSent = 0;
+
+    	private void reportMessages(List<Message> msgList) {
+        for (Message msg: msgList) {
+          String msgString = msg.toContentString();
+          // System.out.println(msgString);
+          msgStream.write(msgString+"\n");
+          msgStream.flush();
+          maxTimestampSent = Long.max(maxTimestampSent, msg.getTimestamp());
+        }
+    	}
+
+    	private PrintWriter msgStream;
+    	private Storage storage;
+    	private InetAddress dstAddr;
+
+    	public MessageReporter(PrintWriter msgStream, Storage storage, InetAddress dstAddr, long maxTimestampSent) {
+    		this.msgStream = msgStream;
+    		this.storage = storage;
+    		this.dstAddr = dstAddr;
+    		this.maxTimestampSent = maxTimestampSent;
+    	}
+    }
+
     public void run() {
       System.out.println("New connection established");
       // save|content|dstAddr|
@@ -56,15 +90,18 @@ public class MessageServer {
         return;
       }
 
+      long timestamp = Long.parseLong(sc.nextMessage());
+      MessageReporter reporter = new MessageReporter(
+      	new PrintWriter(skt.getOutputStream(), true /*auto flushing*/),
+      	storage,
+      	dstAddr,
+      	timestamp,
+      )
+      reporter.start();
+
       while (true) {
         try {
-          String operation = sc.nextMessage();
-
-          if (operation.equals("save") || operation.equals("\nsave")) {
-            saveMessage(sc);
-          } else if (operation.equals("fetch") || operation.equals("\nfetch")) {
-            fetchMessage(sc);
-          } 
+          saveMessage(sc);
         } catch (Exception e) {
           System.out.println("Connection closed by client");
           return;
@@ -74,22 +111,15 @@ public class MessageServer {
       }
     }
 
-    private void fetchMessage(MessageScanner sc) throws Exception {
-      long timestamp = Long.parseLong(sc.nextMessage());
-      PrintWriter msgStream = new PrintWriter(skt.getOutputStream(), true /*auto flushing*/);
-      List<Message> msgList = storage.loadMessageSince(skt.getInetAddress(), timestamp);
-      if (msgList == null) {
-        msgStream.write("<server msg>: no messages since timestamp\n");
-        return;
-      } else {
-        for (Message msg: msgList) {
-          String msgString = msg.toContentString();
-          // System.out.println(msgString);
-          msgStream.write(msgString+"\n");
-          msgStream.flush();
-        }
-      }
-    }
+    // private void fetchMessage(MessageScanner sc, MessageReporter reporter) throws Exception {
+    //   PrintWriter msgStream = new PrintWriter(skt.getOutputStream(), true /*auto flushing*/);
+    //   List<Message> msgList = storage.loadMessageSince(skt.getInetAddress(), timestamp, false);
+    //   if (msgList == null) {
+    //     msgStream.write("<server msg>: no messages since timestamp\n");
+    //     return;
+    //   }
+    //   reporter.reportMessages(msgList);
+    // }
 
     private void saveMessage(MessageScanner sc) throws Exception {
       String content = sc.nextMessage();
