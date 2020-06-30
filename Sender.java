@@ -83,6 +83,7 @@ public class Sender extends Thread {
 		msg = new StringBuilder();
 		try {
 			senderSkt = new Socket(dstInetAddr, SERVER_PORT);
+      System.out.println("Established connection with server at "+senderSkt.getRemoteSocketAddress().toString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			return;
