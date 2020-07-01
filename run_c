@@ -1,0 +1,4 @@
+#!/bin/bash
+
+make Messager_c &&
+docker run -it -v $PWD:/usr/src/messager -w /usr/src/messager -p 5100:5100 openjdk:16-slim MessageServer $@

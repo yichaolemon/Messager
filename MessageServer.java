@@ -12,7 +12,6 @@ import java.util.List;
 
 
 public class MessageServer {
-
 	public static final int SERVER_PORT = 5100;
 
   static private class MessageScanner {
@@ -32,7 +31,7 @@ public class MessageServer {
     }
 
     public MessageScanner(InputStream source) {
-      // pipe
+      // pipe is the deliminator indicating end of message 
       sc = new Scanner(source).useDelimiter(Pattern.compile("\\|"));
     }
   }
@@ -87,7 +86,7 @@ public class MessageServer {
     }
 
     public void run() {
-      System.out.println("Established connection with client at "+dstAddr.getHostAddress());
+      System.out.println("Established connection with client at "+skt.getRemoteSocketAddress().toString());
       // (pipes in content are escaped as \| and backslashes are escaped as \\)
       MessageScanner sc;
       try {
