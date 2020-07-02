@@ -13,6 +13,7 @@ import java.util.List;
 
 public class MessageServer {
 	public static final int SERVER_PORT = 5100;
+  private static ServerSocket serverSkt;
 
   static private class MessageScanner {
     Scanner sc;
@@ -54,7 +55,7 @@ public class MessageServer {
       private boolean exit;
 
     	public void run() {
-    		while (!exit) {
+    		while (!exit && !serverSkt.isClosed()) {
           reportMessages(storage.loadMessageSince(dstAddr, maxTimestampSent+1, true));
         }
         System.out.println("reporterThread exiting");
@@ -62,7 +63,7 @@ public class MessageServer {
 
     	private long maxTimestampSent = 0;
 
-    	private void reportMessages(List<Message> msgList) {
+      private void reportMessages(List<Message> msgList) {
         if (msgList == null) {
           exit = true;
           return;
@@ -74,7 +75,7 @@ public class MessageServer {
           msgStream.flush();
           maxTimestampSent = Long.max(maxTimestampSent, msg.getTimestamp());
         }
-    	}
+      }
 
     	public MessageReporter(PrintWriter msgStream, Storage storage, InetAddress dstAddr, long maxTimestampSent) {
     		this.msgStream = msgStream;
@@ -113,6 +114,7 @@ public class MessageServer {
       );
       reporterThread.start();
 
+      // main loop for serving the client 
       while (true) {
         try {
           saveMessage(sc);
@@ -148,7 +150,7 @@ public class MessageServer {
   }
 
 	public static void main(String[] args) throws Exception {
-		ServerSocket serverSkt = new ServerSocket(SERVER_PORT);
+		serverSkt = new ServerSocket(SERVER_PORT);
 		Storage storage = new Database();
     System.out.println("Server set up, ready to ROCK!!");
     while (true) {
