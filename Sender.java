@@ -7,6 +7,8 @@ import java.util.Scanner;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.regex.Pattern;
+import java.util.regex.Matcher;
 
 /*
 
@@ -24,11 +26,13 @@ close|[group id]
 
 Server sends back
 message|[group id]|[message]
+error|[error message]
 
  */
 
 /*
 Command line REPL
+help
 login [username] [password]
 create group [group id] [username],[username],...
 enter group [group id]
@@ -52,7 +56,7 @@ public class Sender extends Thread {
       this.currentGroup = currentGroup;
     }
     private synchronized int getCurrentGroup() {
-      return self.currentGroup;
+      return this.currentGroup;
     }
 
     public void run() {
@@ -67,10 +71,14 @@ public class Sender extends Thread {
       try {
         while (inStream.hasNextLine()) {
           String nl = inStream.nextLine();
-          String[] components = nl.split("|", 3);
+          String[] components = nl.split("|", 100);
+          if (components[0].equals("error")) {
+            System.out.println("ERROR: " + components[1]);
+            continue;
+          }
           int groupReceived = Integer.parseInt(components[1]);
           String messageReceived = components[2];
-          if (groupReceived == self.getCurrentGroup()) {
+          if (groupReceived == this.getCurrentGroup()) {
             System.out.println(messageReceived);
           }
         }
@@ -118,7 +126,7 @@ public class Sender extends Thread {
   }
 
   private void handleInput(String input) {
-    if inRepl {
+    if (inRepl) {
       handleCommand(input);
     } else {
       handleMessage(input);
@@ -128,17 +136,18 @@ public class Sender extends Thread {
   private static final Pattern loginPattern = Pattern.compile("^login (\\w+) (\\S+)$");
   private static final Pattern createGroupPattern = Pattern.compile("^create group (\\d+) (\\w+(,\\w+)*)$");
   private static final Pattern enterGroupPattern = Pattern.compile("^enter group (\\d+)$");
+  private static final Pattern helpPattern = Pattern.compile("^help$");
 
   private void handleCommand(String command) {
     Matcher loginMatch = loginPattern.matcher(command);
-    if loginMatch.matches() {
+    if (loginMatch.matches()) {
       String username = loginMatch.group(1);
       String password = loginMatch.group(2);
       outputWriter.printf("login|%s|%s\n", username, password);
       return;
     }
     Matcher createGroupMatch = createGroupPattern.matcher(command);
-    if createGroupMatch.match() {
+    if (createGroupMatch.matches()) {
       String groupId = createGroupMatch.group(1);
       String usernameStr = createGroupMatch.group(2);
       String[] usernames = usernameStr.split(",", usernameStr.length());
@@ -150,9 +159,14 @@ public class Sender extends Thread {
       return;
     }
     Matcher enterGroupMatch = enterGroupPattern.matcher(command);
-    if enterGroupMatch.match() {
+    if (enterGroupMatch.matches()) {
       int groupId = Integer.parseInt(enterGroupMatch.group(1));
       enterGroup(groupId);
+      return;
+    }
+    Matcher helpMatch = helpPattern.matcher(command);
+    if (helpMatch.matches()) {
+      System.out.println("Available commands: login, create group, enter group");
       return;
     }
     System.out.println("unrecognized command");
@@ -167,17 +181,17 @@ public class Sender extends Thread {
   }
 
   private void handleMessage(String msg) {
-    if msg.equals("exit") {
+    if (msg.equals("exit")) {
       inRepl = true;
       outputWriter.printf("close|%d\n", currentGroup);
+      return;
     }
-    outputWriter.printf("%d|%s\n", currentGroup, msgString);
+    outputWriter.printf("%d|%s\n", currentGroup, msg);
   }
 
   private SReceiver receiver;
 
   public Sender(InetAddress dstInetAddr) {
-    this.dstInetAddr = dstInetAddr;
     msg = new StringBuilder();
     try {
       senderSkt = new Socket(dstInetAddr, SERVER_PORT);
