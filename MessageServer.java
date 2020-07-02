@@ -1,5 +1,5 @@
 import java.io.OutputStream;
-import java.utils.Arrays;
+import java.util.Arrays;
 import java.lang.Integer;
 import java.util.regex.Pattern;
 import java.net.Socket;
@@ -20,9 +20,8 @@ public class MessageServer {
   static private class ConnHandler extends Thread {
     private final InetAddress dstAddr;
     private final Socket skt;
-    private int counter; 
     private boolean isAuthenticated = false;
-    private final String username;
+    private String username;
 
     // MessageReporter waits for new data to send, and then sends it.
     // Only the MessageReporter thread is allowed to write to the
@@ -33,9 +32,9 @@ public class MessageServer {
       private boolean exit;
     	private long maxTimestampSent = 0;
 
-      private synchronized boolean getExit() {
+      /* private synchronized boolean getExit() {
         return this.exit;
-      }
+      } */
     
       public synchronized void close() {
         this.exit = true;
@@ -80,7 +79,7 @@ public class MessageServer {
       try {
         sc = new Scanner(skt.getInputStream());
         outputStream = skt.getOutputStream();
-        printWriter = new PrintWriter(outputStream, true /*auto flushing*/);
+        outputWriter = new PrintWriter(outputStream, true /*auto flushing*/);
       } catch (Exception e) {
         e.printStackTrace();
         return;
@@ -91,11 +90,12 @@ public class MessageServer {
         try {
           handleInput(sc.nextLine());
         } catch (Exception e) {
-          System.out.println("****   connection closed by client "+dstAddr.getHostAddress()+"   ****");
+          // System.out.println("****   connection closed by client "+dstAddr.getHostAddress()+"   ****");
+          e.printStackTrace();
           reporterThread.interrupt();
+          sc.close();
           return;
         }
-        counter += 1;
       }
     }
 
@@ -107,23 +107,23 @@ public class MessageServer {
         case "login":
           String username = components[1];
           String password = components[2];
-          User authResultUser = userAuthenticationStorage.loginOrRegister(username, password);
+          UserAuthentication.User authResultUser = userAuthenticationStorage.loginOrRegister(username, password);
           if (authResultUser != null) {
             isAuthenticated = true;
             this.username = username;
             // username is set if and only if user is authenticated 
           } else {
-            outputWriter.println("error|Unrecognized Input");
+            outputWriter.println("error|Incorrect password entered");
           } 
           break;
 
         case "create group":
           if (!isAuthenticated) {
-            outputWriter.println("error|User not login, please login first");
+            outputWriter.println("error|Please login first");
           }
           Integer groupIdToCreate = Integer.decode(components[1]);
-          List<String> usernameList = Arrays.copyOfRange(components, 2, components.length);
-          if (!createGroupIfNotExists(groupIdToCreate, usernameList, username)) {
+          List<String> usernameList = Arrays.asList(Arrays.copyOfRange(components, 2, components.length));
+          if (!messageStorage.createGroupIfNotExists(groupIdToCreate, usernameList, username)) {
             outputWriter.println("error|Group already exists");
           }
           userAuthenticationStorage.updateNewGroupInfo(groupIdToCreate, usernameList);
@@ -131,15 +131,20 @@ public class MessageServer {
 
         case "fetch":
           // reporter reports back messages to each connecting client 
+          if (!isAuthenticated) {
+            outputWriter.println("error|Please login first");
+          }
           long timestamp = Long.parseLong(components[2]);
           int groupId = Integer.parseInt(components[1]);
-          // userAuthenticationStorage.
-          reporterThread = new MessageReporter(
-            printWriter,
-            groupId,
-            timestamp
-          );
-          reporterThread.start();
+          if (userAuthenticationStorage.isVerifiedGroupMember(username, groupId)) {
+            reporterThread = new MessageReporter(
+                outputWriter,
+                groupId,
+                timestamp);
+            reporterThread.start();
+          } else {
+            outputWriter.println("error|Unauthorized user for group");
+          }
           break;
 
         case "send":
@@ -154,11 +159,12 @@ public class MessageServer {
       }
     }
 
-    private void saveMessage(String msg, int groupId) throws Exception {
+    private void saveMessage(String content, int groupId) {
       Message message = new Message(
           UUID.randomUUID(),
           System.currentTimeMillis(),
           skt.getInetAddress(),
+          this.username,
           groupId,
           content);
       messageStorage.storeMessage(message);
@@ -168,7 +174,7 @@ public class MessageServer {
     public ConnHandler(Socket skt) {
       this.dstAddr = skt.getInetAddress();
       this.skt = skt;
-      this.counter = 0;
+      this.username = ""; // is this necessary? 
     }
   }
 

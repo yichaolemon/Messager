@@ -3,10 +3,6 @@ import java.net.InetAddress;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import java.text.DateFormat;
-import java.time.format.DateTimeFormatter;
-import java.time.LocalDateTime;
-import java.time.ZonedDateTime;
-import java.time.ZoneId;
 
 /* container class for messages */
 public class Message {
@@ -25,7 +21,7 @@ public class Message {
     return timestamp;
   }
 
-  public InetAddress getDstGroupId() {
+  public int getDstGroupId() {
     return dstGroupId;
   }
 

@@ -1,15 +1,15 @@
-import java.time.ZonedDateTime;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.UUID;
 import java.util.List;
 import java.util.Map;
-import java.net.InetAddress;
 import java.util.TreeMap;
 import java.util.SortedMap;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class Database implements Storage {
   private Map<UUID, Message> messageDatabase = new HashMap<UUID, Message>();
@@ -27,9 +27,9 @@ public class Database implements Storage {
       if (timeIndex == null) {
         // System.out.println("Creating new Index for "+message.getDstAddr().getHostAddress());
         timeIndex = new TreeMap<Long, UUID>();
-        timestampIndex.put(message.getDstGroupId(), timeIndex);
+        timestampIndex.put(Integer.valueOf(message.getDstGroupId()), timeIndex);
       }
-      timeIndex.put(new Long(message.getTimestamp()), message.getUuid());
+      timeIndex.put(Long.valueOf(message.getTimestamp()), message.getUuid());
       hasMoreMessages.signalAll();
     } finally {
       lock.unlock();
@@ -45,14 +45,14 @@ public class Database implements Storage {
     }
   }
 
-  public boolean createGroupIfNotExists(Integer groupIdToCreate, String<List> usernameList, String username) {
+  public boolean createGroupIfNotExists(Integer groupIdToCreate, List<String> usernameList, String username) {
     if (userGroups.containsKey(groupIdToCreate)) {
       return false;
     }
     // now, create this group 
     // TODO: think about whether we want to make the user enter group name instread. 
     // also, do we want to check if these users all exist already? 
-    userGroups.put(groupIdToCreate, usernameList);
+    userGroups.put(groupIdToCreate, new HashSet<String>(usernameList));
     timestampIndex.put(groupIdToCreate, new TreeMap<Long, UUID>());
     return true;
   }
@@ -64,7 +64,7 @@ public class Database implements Storage {
       return null;
     }
     List<Message> messages = new ArrayList<Message>();
-    for (Map.Entry<Long, UUID> e: timeIndex.tailMap(new Long(timestamp)).entrySet()) {
+    for (Map.Entry<Long, UUID> e: timeIndex.tailMap(Long.valueOf(timestamp)).entrySet()) {
       messages.add(loadMessage(e.getValue()));
     }
     return messages.isEmpty() ? null : messages;

@@ -1,10 +1,9 @@
-import java.util.UUID;
 import java.util.List;
 
 
 public interface AuthStorage {
-  public User loginOrRegister(String username, byte[] password);
-  public List<String> getGroupUsers(int groupId);
-  public int createGroup(List<String> userIdList);
+  public UserAuthentication.User loginOrRegister(String username, String password);
+  public void updateNewGroupInfo(Integer groupId, List<String> usernameList);
+  public boolean isVerifiedGroupMember(String username, int groupId);
 }
 
