@@ -100,7 +100,7 @@ public class MessageServer {
     }
 
     private void handleInput(String input) {
-      String[] components = input.split("|", 100);
+      String[] components = input.split("\\|", 100);
 
       switch (components[0]) {
 

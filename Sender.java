@@ -67,7 +67,8 @@ public class Sender extends Thread {
       try {
         while (inStream.hasNextLine()) {
           String nl = inStream.nextLine();
-          String[] components = nl.split("|", 100);
+          System.out.println(nl);
+          String[] components = nl.split("\\|", 100);
           if (components[0].equals("error")) {
             System.out.println("ERROR: " + components[1]);
             continue;
