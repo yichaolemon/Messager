@@ -11,10 +11,10 @@ import java.time.ZoneId;
 /* container class for messages */
 public class Message {
   private final UUID uuid;
-  // server timestamp 
-  private final long timestamp;
+  private final long timestamp; // server timestamp 
   private final InetAddress srcAddr;
-  private final InetAddress dstAddr;
+  private final String srcUsername;
+  private final int dstGroupId;
   private final String content;
 
   public UUID getUuid() {
@@ -25,12 +25,16 @@ public class Message {
     return timestamp;
   }
 
+  public InetAddress getDstGroupId() {
+    return dstGroupId;
+  }
+
   public InetAddress getSrcAddr() {
     return srcAddr;
   }
 
-  public InetAddress getDstAddr() {
-    return dstAddr;
+  public String getSrcUsername() {
+    return srcUsername;
   }
 
   public String getContent() {
@@ -41,7 +45,7 @@ public class Message {
     StringBuilder stringBuilder = new StringBuilder();
     DateFormat formatter = new SimpleDateFormat("@[MM/dd HH:mm:ss]: ");
     Date date = new Date(this.getTimestamp());
-    stringBuilder.append(this.getSrcAddr().getHostAddress());
+    stringBuilder.append(this.getSrcUsername());
     stringBuilder.append(formatter.format(date));
     stringBuilder.append(this.getContent());
     return stringBuilder.toString();
@@ -53,16 +57,18 @@ public class Message {
     stringBuilder.append("\tUUID:\t"+uuid.toString()+"\n");
     stringBuilder.append("\tTimestamp:\t"+Long.toString(timestamp)+"\n");
     stringBuilder.append("\tsrcAddress:\t"+srcAddr.getHostAddress()+"\n");
-    stringBuilder.append("\tdstAddress:\t"+dstAddr.getHostAddress()+"\n");
+    stringBuilder.append("\tsrcUsername:\t"+srcUsername+"\n");
+    stringBuilder.append("\tdstGroupId:\t"+String.valueOf(dstGroupId)+"\n");
     stringBuilder.append("\tContent:\t"+content+"\n");
     return stringBuilder.toString();
   }
 
-  public Message(UUID uuid, long timestamp, InetAddress srcAddr, InetAddress dstAddr, String content) {
+  public Message(UUID uuid, long timestamp, InetAddress srcAddr, String srcUsername, int dstGroupId, String content) {
     this.uuid = uuid;
     this.timestamp = timestamp;
     this.srcAddr = srcAddr;
-    this.dstAddr = dstAddr;
+    this.srcUsername = srcUsername;
+    this.dstGroupId = dstGroupId;
     this.content = content; 
   }
 }

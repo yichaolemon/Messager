@@ -11,45 +11,45 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
 /*
-
-# Protocol
-Generally the command separator is the newline,
-and within commands each component is separated by a pipe.
-Client can send these commands:
-login|[username]|[password]
-create group|[group id]|[username]|[username]|...
-fetch|[group id]|[start timestamp]
-send|[group id]|[message]
-close|[group id]
-
-Server sends back
-message|[group id]|[message]
-error|[error message]
-
+ * Protocol:
+ * [Generally the command separator is the newline,
+ * and within commands each component is separated by a pipe.]
+ *
+ * Client can send these commands:
+ * login|[username]|[password]
+ * create group|[group id]|[username]|[username]|...
+ * fetch|[group id]|[start timestamp]
+ * send|[group id]|[message]
+ * close|[group id]
+ * 
+ * Corresponding Command line REPL:
+ * login [username] [password]
+ * create group [group id] [username],[username],...
+ * enter group [group id]
+ * [message]
+ * exit
+ * help -- to see the above options and usage 
+ *
+ * Server sends back:
+ * message|[group id]|[message]
+ * error|[error message]
+ * 
  */
-
-/*
-Command line REPL
-help
-login [username] [password]
-create group [group id] [username],[username],...
-enter group [group id]
-[message]
-exit
-*/
 
 public class Sender extends Thread {
   private boolean inRepl = true;
   private int currentGroup;
-  private StringBuilder msg;
+  private final int SERVER_PORT = 5100;
+
   private final Lock lock = new ReentrantLock();
   private final Condition strNotEmpty = lock.newCondition();
+  private StringBuilder msg; 
   private Socket senderSkt;
   private PrintWriter outputWriter;
-  private final int SERVER_PORT = 5100;
 
   private class SReceiver extends Thread {
     private int currentGroup;
+
     public synchronized void setCurrentGroup(int currentGroup) {
       this.currentGroup = currentGroup;
     }
@@ -65,7 +65,7 @@ public class Sender extends Thread {
         e.printStackTrace();
         return;
       }
-      // Loop over all messages
+      // Main loop for fetching messages 
       try {
         while (inStream.hasNextLine()) {
           String nl = inStream.nextLine();
@@ -85,7 +85,6 @@ public class Sender extends Thread {
         return;
       }
     }
-
   }
 
   public void writeMsg(String line) {
@@ -105,7 +104,7 @@ public class Sender extends Thread {
         strNotEmpty.await();
       }
       String msgString = msg.toString();
-      msg.setLength(0);
+      msg.setLength(0); // no need for repetitive memory realloc each time
       return msgString;
     } finally {
       lock.unlock();
@@ -131,6 +130,7 @@ public class Sender extends Thread {
     }
   }
 
+  // Regex parsing 
   private static final Pattern loginPattern = Pattern.compile("^login (\\w+) (\\S+)$");
   private static final Pattern createGroupPattern = Pattern.compile("^create group (\\d+) (\\w+(,\\w+)*)$");
   private static final Pattern enterGroupPattern = Pattern.compile("^enter group (\\d+)$");
@@ -138,14 +138,17 @@ public class Sender extends Thread {
 
   private void handleCommand(String command) {
     Matcher loginMatch = loginPattern.matcher(command);
+    Matcher createGroupMatch = createGroupPattern.matcher(command);
+    Matcher enterGroupMatch = enterGroupPattern.matcher(command);
+    Matcher helpMatch = helpPattern.matcher(command);
+
     if (loginMatch.matches()) {
       String username = loginMatch.group(1);
       String password = loginMatch.group(2);
       outputWriter.printf("login|%s|%s\n", username, password);
-      return;
-    }
-    Matcher createGroupMatch = createGroupPattern.matcher(command);
-    if (createGroupMatch.matches()) {
+      // TODO: hide password using some console password parser
+    } 
+    else if (createGroupMatch.matches()) {
       String groupId = createGroupMatch.group(1);
       String usernameStr = createGroupMatch.group(2);
       String[] usernames = usernameStr.split(",", usernameStr.length());
@@ -154,28 +157,25 @@ public class Sender extends Thread {
         outputWriter.printf("|%s", username);
       }
       outputWriter.printf("\n");
-      return;
     }
-    Matcher enterGroupMatch = enterGroupPattern.matcher(command);
-    if (enterGroupMatch.matches()) {
+    else if (enterGroupMatch.matches()) {
       int groupId = Integer.parseInt(enterGroupMatch.group(1));
       enterGroup(groupId);
-      return;
     }
-    Matcher helpMatch = helpPattern.matcher(command);
-    if (helpMatch.matches()) {
+    else if (helpMatch.matches()) {
       System.out.println("Available commands: login, create group, enter group");
-      return;
     }
-    System.out.println("unrecognized command");
+    else {
+      System.out.println("unrecognized command");
+    }
   }
 
   private void enterGroup(int groupId) {
-      inRepl = false;
-      currentGroup = groupId;
-      receiver.setCurrentGroup(groupId);
-      long timestamp = 0;  // TODO
-      outputWriter.printf("fetch|%d|%d\n", currentGroup, timestamp);
+    inRepl = false;
+    currentGroup = groupId;
+    receiver.setCurrentGroup(groupId);
+    long timestamp = 0;  // TODO: remember the last timestamp for each group.  
+    outputWriter.printf("fetch|%d|%d\n", currentGroup, timestamp);
   }
 
   private void handleMessage(String msg) {
