@@ -120,10 +120,11 @@ public class MessageServer {
         case "create group":
           if (!isAuthenticated) {
             outputWriter.println("error|Please login first");
+            return;
           }
           Integer groupIdToCreate = Integer.decode(components[1]);
           List<String> usernameList = Arrays.asList(Arrays.copyOfRange(components, 2, components.length));
-          if (!messageStorage.createGroupIfNotExists(groupIdToCreate, usernameList, username)) {
+          if (!messageStorage.createGroupIfNotExists(groupIdToCreate, usernameList, this.username)) {
             outputWriter.println("error|Group already exists");
           }
           userAuthenticationStorage.updateNewGroupInfo(groupIdToCreate, usernameList);
@@ -133,10 +134,11 @@ public class MessageServer {
           // reporter reports back messages to each connecting client 
           if (!isAuthenticated) {
             outputWriter.println("error|Please login first");
+            return;
           }
           long timestamp = Long.parseLong(components[2]);
           int groupId = Integer.parseInt(components[1]);
-          if (userAuthenticationStorage.isVerifiedGroupMember(username, groupId)) {
+          if (userAuthenticationStorage.isVerifiedGroupMember(this.username, groupId)) {
             reporterThread = new MessageReporter(
                 outputWriter,
                 groupId,
@@ -174,7 +176,6 @@ public class MessageServer {
     public ConnHandler(Socket skt) {
       this.dstAddr = skt.getInetAddress();
       this.skt = skt;
-      this.username = ""; // is this necessary? 
     }
   }
 
