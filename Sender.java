@@ -18,20 +18,23 @@ public class Sender extends Thread {
 
 	private class SReceiver extends Thread {
 		public void run() {
-			while (true) {
-				Scanner inStream;
-				try {
-					inStream = new Scanner(senderSkt.getInputStream());
-				} catch (Exception e) {
-					e.printStackTrace();
-					return;
-				}
-				// Loop over all messages
-				while (inStream.hasNextLine()) {
-					String nl = inStream.nextLine();
-					System.out.println(nl);
-				}
-			}
+      Scanner inStream;
+      try {
+        inStream = new Scanner(senderSkt.getInputStream());
+      } catch (Exception e) {
+        e.printStackTrace();
+        return;
+      }
+      // Loop over all messages
+      try {
+        while (inStream.hasNextLine()) {
+          String nl = inStream.nextLine();
+          System.out.println(nl);
+        }
+      } catch (Exception e) {
+        e.printStackTrace();
+        return;
+      }
 		}
 
 	}
