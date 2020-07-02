@@ -18,8 +18,6 @@ and within commands each component is separated by a pipe.
 Client can send these commands:
 login|[username]|[password]
 create group|[group id]|[username]|[username]|...
-
-# these are constructed by the client automatically while the user is just typing in messages.
 fetch|[group id]|[start timestamp]
 send|[group id]|[message]
 close|[group id]

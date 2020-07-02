@@ -15,28 +15,6 @@ public class MessageServer {
 	public static final int SERVER_PORT = 5100;
   private static ServerSocket serverSkt;
 
-  static private class MessageScanner {
-    Scanner sc;
-
-    public boolean hasNextMessage() {
-      return sc.hasNext();
-    }
-
-    public String nextMessage() {
-      StringBuilder msg = new StringBuilder();
-      String next = sc.next();
-      // For now, we don't allow the delimiter to appear in the message.
-      // TODO: escape them by checking if `next` ends with an odd number of backslashes.
-      msg.append(next);
-      return msg.toString();
-    }
-
-    public MessageScanner(InputStream source) {
-      // pipe is the deliminator indicating end of message 
-      sc = new Scanner(source).useDelimiter(Pattern.compile("\\|"));
-    }
-  }
-
   static private class ConnHandler extends Thread {
     
     private InetAddress dstAddr;
@@ -51,12 +29,19 @@ public class MessageServer {
 
     	private PrintWriter msgStream;
     	private Storage storage;
-    	private InetAddress dstAddr;
+    	private int groupId;
       private boolean exit;
+
+      private synchronized boolean getExit() {
+        return this.exit;
+      }
+      public synchronized void close() {
+        this.exit = true;
+      }
 
     	public void run() {
     		while (!exit && !serverSkt.isClosed()) {
-          reportMessages(storage.loadMessageSince(dstAddr, maxTimestampSent+1, true));
+          reportMessages(storage.loadMessageSince(groupId, maxTimestampSent+1, true));
         }
         System.out.println("reporterThread exiting");
     	}
@@ -71,33 +56,33 @@ public class MessageServer {
         for (Message msg: msgList) {
           String msgString = msg.toContentString();
           System.out.println("writing message: "+msgString+" at timestamp "+msg.getTimestamp());
-          msgStream.write(msgString+"\n");
-          msgStream.flush();
+          msgStream.printf("%s\n", msgString);
           maxTimestampSent = Long.max(maxTimestampSent, msg.getTimestamp());
         }
       }
 
-    	public MessageReporter(PrintWriter msgStream, Storage storage, InetAddress dstAddr, long maxTimestampSent) {
+    	public MessageReporter(PrintWriter msgStream, Storage storage, int groupId, long maxTimestampSent) {
     		this.msgStream = msgStream;
     		this.storage = storage;
-    		this.dstAddr = dstAddr;
+    		this.groupId = groupId;
     		this.maxTimestampSent = maxTimestampSent;
         this.exit = false;
     	}
     }
 
+    private PrintWriter outputWriter;
+    private MessageReporter reporterThread;
+
     public void run() {
       System.out.println("Established connection with client at "+skt.getRemoteSocketAddress().toString());
       // (pipes in content are escaped as \| and backslashes are escaped as \\)
-      MessageScanner sc;
+      Scanner sc;
       try {
-        sc = new MessageScanner(skt.getInputStream());
+        sc = new Scanner(skt.getInputStream());
       } catch (Exception e) {
         e.printStackTrace();
         return;
       }
-      // at the start, at client, send the timestamp 
-      long timestamp = Long.parseLong(sc.nextMessage());
       OutputStream outputStream;
       try {
         outputStream = skt.getOutputStream();
@@ -105,19 +90,12 @@ public class MessageServer {
         e.printStackTrace();
         return;
       }
-      // reporter reports back messages to each connecting client 
-      MessageReporter reporterThread = new MessageReporter(
-      	new PrintWriter(outputStream, true /*auto flushing*/),
-      	storage,
-      	dstAddr,
-      	timestamp
-      );
-      reporterThread.start();
+      printWriter = new PrintWriter(outputStream, true /*auto flushing*/);
 
       // main loop for serving the client 
-      while (true) {
+      while (sc.hasNextLine()) {
         try {
-          saveMessage(sc);
+          handleInput(sc.nextLine());
         } catch (Exception e) {
           System.out.println("****   connection closed by client "+dstAddr.getHostAddress()+"   ****");
           reporterThread.interrupt();
@@ -127,15 +105,45 @@ public class MessageServer {
       }
     }
 
-    private void saveMessage(MessageScanner sc) throws Exception {
-      String content = sc.nextMessage();
-      String addr = sc.nextMessage();
+    private void handleInput(String input) {
+      String[] components = input.split("|", 100);
+      switch (components[0]) {
+        case "login":
+          // TODO
+          break;
+        case "create group":
+          // TODO
+          break;
+        case "fetch":
+          // reporter reports back messages to each connecting client 
+          long timestamp = Long.parseLong(components[2]);
+          int groupId = Integer.parseInt(components[1]);
+          reporterThread = new MessageReporter(
+            printWriter,
+            storage,
+            groupId,
+            timestamp
+          );
+          reporterThread.start();
+          break;
+        case "send":
+          saveMessage(components[2], Integer.parseInt(components[1]));
+          break;
+        case "close":
+          reporterThread.close();
+          reporterThread = null;
+          break;
+        default:
+          outputWriter.println("error|Unrecognized Input");
+      }
+    }
 
+    private void saveMessage(String msg, int groupId) throws Exception {
       Message message = new Message(
           UUID.randomUUID(),
           System.currentTimeMillis(),
           skt.getInetAddress(),
-          InetAddress.getByName(addr),
+          groupId,
           content);
       storage.storeMessage(message);
       System.out.println("****   saved new message from "+dstAddr.getHostAddress()+"   ****");
