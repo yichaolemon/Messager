@@ -55,7 +55,7 @@ public class MessageServer {
         for (Message msg: msgList) {
           String msgString = msg.toContentString();
           // System.out.println("writing message: "+msgString+" at timestamp "+msg.getTimestamp());
-          msgStream.printf("%s\n", msgString);
+          msgStream.printf("message|%d|%s\n", groupId, msgString);
           maxTimestampSent = Long.max(maxTimestampSent, msg.getTimestamp());
         }
       }

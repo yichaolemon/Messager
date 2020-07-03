@@ -67,7 +67,7 @@ public class Sender extends Thread {
       try {
         while (inStream.hasNextLine()) {
           String nl = inStream.nextLine();
-          System.out.println(nl);
+          // System.out.println(nl);
           String[] components = nl.split("\\|", 100);
           if (components[0].equals("error")) {
             System.out.println("ERROR: " + components[1]);
@@ -183,7 +183,7 @@ public class Sender extends Thread {
       outputWriter.printf("close|%d\n", currentGroup);
       return;
     }
-    outputWriter.printf("%d|%s\n", currentGroup, msg);
+    outputWriter.printf("send|%d|%s\n", currentGroup, msg);
   }
 
   private SReceiver receiver;
