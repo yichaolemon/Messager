@@ -151,10 +151,11 @@ public class Sender extends Thread {
       String groupId = createGroupMatch.group(1);
       String usernameStr = createGroupMatch.group(2);
       String[] usernames = usernameStr.split(",", usernameStr.length());
-      outputWriter.printf("create group|%d", groupId);
+      StringBuilder msg = new StringBuilder();
       for (String username: usernames) {
-        outputWriter.printf("|%s", username);
+        msg.append("|"+username);
       }
+      outputWriter.printf("create group|%s%s\n", groupId, msg.toString());
       outputWriter.printf("\n");
     }
     else if (enterGroupMatch.matches()) {
@@ -170,7 +171,7 @@ public class Sender extends Thread {
   }
 
   private void enterGroup(int groupId) {
-    inRepl = false;
+    inRepl = false; // TODO: this is incorrect!! 
     currentGroup = groupId;
     receiver.setCurrentGroup(groupId);
     long timestamp = 0;  // TODO: remember the last timestamp for each group.  

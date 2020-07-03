@@ -54,46 +54,49 @@ public class UserAuthentication implements AuthStorage {
     private static User user; 
     private static byte[] passwordHash;
     private static byte[] salt;
-    private static Random random;
 
     private boolean isVerifiedUser(String username, String password) {
-      if (username != user.getUsername()) {
+      if (!username.equals(user.getUsername())) {
         return false;
       }
-      return Arrays.equals(generateHash(password), passwordHash);
+      try {
+        byte[] givenHash = generateHash(password);
+        return Arrays.equals(givenHash, passwordHash);
+      } catch (Exception e) {
+        e.printStackTrace();
+        return false;
+      }
     }
 
-    private byte[] generateHash(String password) {
+    private byte[] generateHash(String password) throws Exception {
       PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, ITERATIONS, KEYLENGTH);
-      try {
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
-        passwordHash = factory.generateSecret(spec).getEncoded();
-        return passwordHash;
-      } catch (Exception e) {
-        throw new AssertionError("Error while hashing a password: " + e.getMessage(), e);
-      } finally {
-        spec.clearPassword();
-      }
+      SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+      return factory.generateSecret(spec).getEncoded();
     }
 
     public User getUser() {
       return user;
     }
 
-    public void updateUser(User user) {
-      this.user = user;
+    public void updateUser(User userStruct) {
+      user = userStruct;
     }
 
     public static boolean isInGroup(int groupId) {
       return user.isInGroup(groupId);
     }
 
-    public UserWithPassword(User user, String password) {
-      this.user = user;
-      random = new SecureRandom();
+    public UserWithPassword(User userStruct, String password) {
+      user = userStruct;
+      Random random = new SecureRandom();
       salt = new byte[16];
       random.nextBytes(salt);
-      passwordHash = generateHash(password);
+      try {
+        passwordHash = generateHash(password);
+      } catch (Exception e) {
+        e.printStackTrace();
+        return;
+      }
     }
   }
   
@@ -127,7 +130,7 @@ public class UserAuthentication implements AuthStorage {
 
     // register new user 
     if (userInStorage == null) {
-      System.out.println("Registering new user with id: "+username);
+      System.out.println("Registering new user with id: "+username+"password: "+password);
       // TODO: look up the group info 
       UserWithPassword newUser = new UserWithPassword(new User(username), password);
       authDatabase.put(username, newUser);

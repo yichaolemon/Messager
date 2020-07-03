@@ -101,12 +101,20 @@ public class MessageServer {
 
     private void handleInput(String input) {
       String[] components = input.split("\\|", 100);
+      System.out.printf("Handling input string: %s\n", input);
 
       switch (components[0]) {
 
         case "login":
           String username = components[1];
           String password = components[2];
+          if (username.equals(this.username) && isAuthenticated) {
+            outputWriter.printf("error|Already logged in with username @%s\n", username);
+            return;
+          } else if (isAuthenticated) {
+            outputWriter.printf("error|Currently logged in with username @%s, to log in to a different account, start a new session\n", this.username);
+            return;
+          }
           UserAuthentication.User authResultUser = userAuthenticationStorage.loginOrRegister(username, password);
           if (authResultUser != null) {
             isAuthenticated = true;
