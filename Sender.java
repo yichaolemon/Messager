@@ -156,7 +156,6 @@ public class Sender extends Thread {
         msg.append("|"+username);
       }
       outputWriter.printf("create group|%s%s\n", groupId, msg.toString());
-      outputWriter.printf("\n");
     }
     else if (enterGroupMatch.matches()) {
       int groupId = Integer.parseInt(enterGroupMatch.group(1));
