@@ -20,7 +20,7 @@ public class UserAuthentication implements AuthStorage {
   
   private static final int ITERATIONS = 10000;
   private static final int KEYLENGTH = 128;
-  private static Map<String, UserWithPassword> authDatabase; // maps from username to UserStorage 
+  private Map<String, UserWithPassword> authDatabase; // maps from username to UserStorage 
 
   // username should be unique
   // password should be hashed 
@@ -51,9 +51,9 @@ public class UserAuthentication implements AuthStorage {
   }
   
   private static class UserWithPassword {
-    private static User user; 
-    private static byte[] passwordHash;
-    private static byte[] salt;
+    private User user; 
+    private byte[] passwordHash;
+    private byte[] salt;
 
     private boolean isVerifiedUser(String username, String password) {
       if (!username.equals(user.getUsername())) {
@@ -82,7 +82,7 @@ public class UserAuthentication implements AuthStorage {
       user = userStruct;
     }
 
-    public static boolean isInGroup(int groupId) {
+    public boolean isInGroup(int groupId) {
       return user.isInGroup(groupId);
     }
 

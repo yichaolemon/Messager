@@ -161,6 +161,10 @@ public class MessageServer {
           saveMessage(components[2], Integer.parseInt(components[1]));
           break;
         case "close":
+          if (reporterThread == null) {
+            outputWriter.println("error|Already exitted chat group");
+            break;
+          }
           reporterThread.close();
           reporterThread = null;
           break;
