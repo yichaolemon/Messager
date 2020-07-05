@@ -1,9 +1,7 @@
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.lang.Integer;
-import java.util.regex.Pattern;
 import java.net.Socket;
-import java.io.InputStream;
 import java.net.ServerSocket;
 import java.util.Scanner;
 import java.io.PrintWriter;
@@ -26,6 +24,39 @@ public class MessageServer {
     // MessageReporter waits for new data to send, and then sends it.
     // Only the MessageReporter thread is allowed to write to the
     // socket's output stream.
+    private class KeyReporter extends Thread {
+    	private PrintWriter msgStream;
+      private int maxIndexSent = 0;
+      private boolean exit;
+
+
+    	public void run() {
+    		while (!exit && !serverSkt.isClosed()) {
+          reportKeys(userAuthenticationStorage.loadKeysSince(maxIndexSent+1, true, username));
+        }
+        System.out.println("keyReporter Thread exiting");
+    	}
+
+      private void reportKeys(List<String> userKeyPairList) {
+        if (userKeyPairList == null) {
+          exit = true;
+          return;
+        } 
+        maxIndexSent = Math.max(maxIndexSent, maxIndexSent+userKeyPairList.size());
+        StringBuilder msg = new StringBuilder();
+        for (String userKeyPair: userKeyPairList) {
+          msg.append("|"+userKeyPair);
+        }
+        msgStream.printf("public keys%s\n", msg.toString());
+      }
+
+    	public KeyReporter(PrintWriter msgStream, int maxIndexSent) {
+    		this.msgStream = msgStream;
+    		this.maxIndexSent = maxIndexSent;
+        this.exit = false;
+    	}
+    }
+
     private class MessageReporter extends Thread {
     	private PrintWriter msgStream;
     	private int groupId;
@@ -69,7 +100,8 @@ public class MessageServer {
     }
 
     private PrintWriter outputWriter;
-    private MessageReporter reporterThread;
+    private MessageReporter messageReporterThread;
+    private KeyReporter keyReporterThread;
 
     public void run() {
       System.out.printf("Established connection with client at %s\n", skt.getRemoteSocketAddress().toString());
@@ -92,7 +124,7 @@ public class MessageServer {
         } catch (Exception e) {
           // System.out.println("****   connection closed by client "+dstAddr.getHostAddress()+"   ****");
           e.printStackTrace();
-          reporterThread.interrupt();
+          messageReporterThread.interrupt();
           sc.close();
           return;
         }
@@ -120,6 +152,8 @@ public class MessageServer {
           if (authResultUser != null) {
             isAuthenticated = true;
             this.username = username;
+            keyReporterThread = new KeyReporter(outputWriter, 0);
+            keyReporterThread.start();
             // username is set if and only if user is authenticated 
           } else {
             outputWriter.println("error|Incorrect password entered");
@@ -148,11 +182,11 @@ public class MessageServer {
           long timestamp = Long.parseLong(components[2]);
           int groupId = Integer.parseInt(components[1]);
           if (userAuthenticationStorage.isVerifiedGroupMember(this.username, groupId)) {
-            reporterThread = new MessageReporter(
+            messageReporterThread = new MessageReporter(
                 outputWriter,
                 groupId,
                 timestamp);
-            reporterThread.start();
+            messageReporterThread.start();
           } else {
             outputWriter.println("error|Unauthorized user for group");
           }
@@ -162,12 +196,12 @@ public class MessageServer {
           saveMessage(components[2], Integer.parseInt(components[1]));
           break;
         case "close":
-          if (reporterThread == null) {
+          if (messageReporterThread == null) {
             outputWriter.println("error|Already exitted chat group");
             break;
           }
-          reporterThread.close();
-          reporterThread = null;
+          messageReporterThread.close();
+          messageReporterThread = null;
           break;
         default:
           outputWriter.println("error|Unrecognized Input");

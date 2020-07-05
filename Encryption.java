@@ -11,6 +11,8 @@ import javax.crypto.spec.SecretKeySpec;
 import java.util.Map;
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
+import java.util.ArrayList;
 import java.security.spec.X509EncodedKeySpec;
 
 
@@ -68,14 +70,28 @@ public class Encryption {
     AESKeys.put(groupId, new SecretKeySpec(cipherDecrypt.doFinal(AESKeyCiphertext), "AES"));
   }
   
-  public byte[] createAndEncryptAESKey(int groupId, String key) throws Exception {
+  public List<String> createAndEncryptAESKey(int groupId, List<String> publicKeyList) throws Exception {
     KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
     keyGenerator.init(keysize);
     SecretKey aesKey = keyGenerator.generateKey();
     AESKeys.put(Integer.valueOf(groupId), aesKey);
-    Cipher cipherEncrypt = Cipher.getInstance(publicKeyAlgorithm);
-    cipherEncrypt.init(Cipher.ENCRYPT_MODE, publicKeyFromString(key));
-    return cipherEncrypt.doFinal(aesKey.getEncoded());
+
+    List<String> encodedKeyList = new ArrayList<String>();
+    for (String publicKeyString: publicKeyList) {
+      Cipher cipherEncrypt = Cipher.getInstance(publicKeyAlgorithm);
+      cipherEncrypt.init(Cipher.ENCRYPT_MODE, publicKeyFromString(publicKeyString));
+      String encryptedAESKey = bytesToString(cipherEncrypt.doFinal(aesKey.getEncoded()));
+      encodedKeyList.add(encryptedAESKey);
+    }
+    return encodedKeyList;
+  }
+
+  public String bytesToString(byte[] byteArray) {
+    return new String(Base64.getEncoder().encode(byteArray), StandardCharsets.UTF_8);
+  }
+
+  public byte[] stringToBytes(String msgString) {
+    return Base64.getDecoder().decode(msgString.getBytes(StandardCharsets.UTF_8));
   }
 
   public String encryptMessage(int groupId, String message)  throws Exception {

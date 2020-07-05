@@ -7,6 +7,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
+import java.util.Map;
+import java.util.HashMap;
 
 /*
  * Protocol:
@@ -31,6 +33,7 @@ import java.util.regex.Matcher;
  * Server sends back:
  * message|[group id]|[message]
  * error|[error message]
+ * public keys|[username]|[key]|...
  * 
  */
 
@@ -39,12 +42,14 @@ public class Sender extends Thread {
   private int currentGroup;
   private final int SERVER_PORT = 5100;
 
-  private final Lock lock = new ReentrantLock();
-  private final Condition strNotEmpty = lock.newCondition();
+  private final Lock msgLock = new ReentrantLock(); // protecting msg 
+  private final Lock publicKeysLock = new ReentrantLock(); // protecting publicKeys
+  private final Condition strNotEmpty = msgLock.newCondition();
   private StringBuilder msg; 
   private Socket senderSkt;
   private PrintWriter outputWriter;
   private Encryption encryptionEntity;
+  private Map<String, String> publicKeys;
 
   private class SReceiver extends Thread {
     private int currentGroup;
@@ -72,12 +77,22 @@ public class Sender extends Thread {
           String[] components = nl.split("\\|", 100);
           if (components[0].equals("error")) {
             System.out.println("ERROR: " + components[1]);
-            continue;
-          }
-          int groupReceived = Integer.parseInt(components[1]);
-          String messageReceived = components[2];
-          if (groupReceived == this.getCurrentGroup()) {
-            System.out.println(messageReceived);
+          } else if (components[0].equals("public keys")) {
+            int i = 1;
+            publicKeysLock.lock();
+            while (i < components.length) {
+              String user = components[i];
+              String key = components[i+1];
+              publicKeys.put(user, key);
+              i = i+2;
+            }
+            publicKeysLock.unlock();
+          } else {
+            int groupReceived = Integer.parseInt(components[1]);
+            String messageReceived = components[2];
+            if (groupReceived == this.getCurrentGroup()) {
+              System.out.println(messageReceived);
+            }
           }
         }
       } catch (Exception e) {
@@ -88,17 +103,17 @@ public class Sender extends Thread {
   }
 
   public void writeMsg(String line) {
-    lock.lock();
+    msgLock.lock();
     try {
       msg.append(line);
       strNotEmpty.signal();
     }	finally {
-      lock.unlock();
+      msgLock.unlock();
     }
   }
 
   private String getMsg() throws InterruptedException {
-    lock.lock();
+    msgLock.lock();
     try {
       while (msg.length() == 0) {
         strNotEmpty.await();
@@ -107,7 +122,7 @@ public class Sender extends Thread {
       msg.setLength(0); // no need for repetitive memory realloc each time
       return msgString;
     } finally {
-      lock.unlock();
+      msgLock.unlock();
     }
   }
 
@@ -153,10 +168,20 @@ public class Sender extends Thread {
       String usernameStr = createGroupMatch.group(2);
       String[] usernames = usernameStr.split(",", usernameStr.length());
       StringBuilder msg = new StringBuilder();
+      boolean foundAllKeys = true;
+
       for (String username: usernames) {
-        msg.append("|"+username);
+        if (!publicKeys.containsKey(username)) {
+          System.out.printf("user %s not logged in yet\n", username);
+          foundAllKeys = false;
+          continue;
+        }
+        String userPublicKey = publicKeys.get(username);
+        msg.append("|"+username+"|"+userPublicKey);
       }
-      outputWriter.printf("create group|%s%s\n", groupId, msg.toString());
+      if (foundAllKeys) {
+        outputWriter.printf("create group|%s%s\n", groupId, msg.toString());
+      } 
     }
     else if (enterGroupMatch.matches()) {
       int groupId = Integer.parseInt(enterGroupMatch.group(1));
@@ -191,6 +216,7 @@ public class Sender extends Thread {
 
   public Sender(InetAddress dstInetAddr) {
     msg = new StringBuilder();
+    publicKeys = new HashMap<String, String>();
     try {
       senderSkt = new Socket(dstInetAddr, SERVER_PORT);
       System.out.println("Established connection with server at "+senderSkt.getRemoteSocketAddress().toString());

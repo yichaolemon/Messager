@@ -4,10 +4,15 @@ import javax.crypto.SecretKeyFactory;
 import java.util.Random;
 import java.util.HashSet;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.ListIterator;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 
 /*
@@ -21,6 +26,9 @@ public class UserAuthentication implements AuthStorage {
   private static final int ITERATIONS = 10000;
   private static final int KEYLENGTH = 128;
   private Map<String, UserWithPassword> authDatabase; // maps from username to UserStorage 
+  private List<String> usernameList = new ArrayList<String>(); // append only 
+  private final Lock authDataLock = new ReentrantLock();
+  private final Condition hasNewUserKey = authDataLock.newCondition();
 
   // username should be unique
   // password should be hashed 
@@ -107,7 +115,9 @@ public class UserAuthentication implements AuthStorage {
   }
   
   public boolean isVerifiedGroupMember(String username, int groupId) {
+    authDataLock.lock();
     UserWithPassword user = authDatabase.get(username);
+    authDataLock.unlock();
     if (user == null) {
       return false;
     } else {
@@ -116,22 +126,61 @@ public class UserAuthentication implements AuthStorage {
   }
 
   public void updateNewGroupInfo(Integer groupId, List<String> usernameList) {
+    authDataLock.lock();
     for (String username: usernameList) {
       UserWithPassword userContainer = authDatabase.get(username);
       if (userContainer == null) {
         // TODO: keep meta data for users that don't exist yet 
         continue;
       } 
-      if (authDatabase.containsKey(username)) {
-        User user = authDatabase.get(username).getUser();
-        user.addGroup(Integer.valueOf(groupId));
-        userContainer.updateUser(user);
-        authDatabase.put(username, userContainer);
+      User user = userContainer.getUser();
+      user.addGroup(Integer.valueOf(groupId));
+      userContainer.updateUser(user);
+      authDatabase.put(username, userContainer);
+    }
+    authDataLock.unlock();
+  }
+
+  private List<String> loadKeysSinceOrNull(int index, String username) { 
+    if (usernameList.size() <= index) {
+      return null;
+    }
+    ListIterator<String> iter = usernameList.listIterator(index);
+    List<String> userPublicKeys  =  new ArrayList<String>();
+    authDataLock.lock();
+    while (iter.hasNext()) {
+      String user = iter.next();
+      if (user.equals(username)) {
+        continue;
       }
+      String userKey = authDatabase.get(username).getUser().getPublicKey();
+      userPublicKeys.add(username+"|"+userKey);
+    }
+    authDataLock.unlock();
+    return userPublicKeys.isEmpty() ? null : userPublicKeys;
+  }
+
+  public List<String> loadKeysSince(int index, boolean block, String username) {
+    // System.out.println("Fetching messages since "+timestamp);
+    authDataLock.lock();
+    try {
+      List<String> userKeyPairs;
+      while ((userKeyPairs = loadKeysSinceOrNull(index, username)) == null || !block) {
+        try {
+          hasNewUserKey.await();
+        } catch (Exception e) {
+          return null;
+        }
+      }
+      return userKeyPairs;
+    } finally {
+      // lock.unlock();
     }
   }
 
+  // TODO: allow users to change their public key across different logins
   public User loginOrRegister(String username, String password, String publicKey) {
+    authDataLock.lock();
     UserWithPassword userInStorage = authDatabase.get(username);
 
     // register new user 
@@ -140,9 +189,13 @@ public class UserAuthentication implements AuthStorage {
       // TODO: look up the group info 
       UserWithPassword newUser = new UserWithPassword(new User(username, publicKey), password);
       authDatabase.put(username, newUser);
+      usernameList.add(username); // position in the list is its index 
+      hasNewUserKey.signalAll();
+      authDataLock.unlock();
       return newUser.getUser();
     }
 
+    authDataLock.unlock();
     // authenticating existing user 
     if (userInStorage.isVerifiedUser(username, password)) {
       return userInStorage.getUser();

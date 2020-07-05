@@ -16,11 +16,11 @@ public class Database implements Storage {
   private Map<Integer, SortedMap<Long, UUID>> timestampIndex = new HashMap<Integer, SortedMap<Long, UUID>>();
   private Map<Integer, Set<String>> userGroups = new HashMap<Integer, Set<String>>();
 
-  private final Lock lock = new ReentrantLock();
-  private final Condition hasMoreMessages = lock.newCondition();
+  private final Lock messageDataLock = new ReentrantLock();
+  private final Condition hasMoreMessages = messageDataLock.newCondition();
 
   public void storeMessage(Message message) {
-    lock.lock();
+    messageDataLock.lock();
     try {
       messageDatabase.put(message.getUuid(), message);
       SortedMap<Long, UUID> timeIndex = timestampIndex.get(message.getDstGroupId());
@@ -32,16 +32,16 @@ public class Database implements Storage {
       timeIndex.put(Long.valueOf(message.getTimestamp()), message.getUuid());
       hasMoreMessages.signalAll();
     } finally {
-      lock.unlock();
+      messageDataLock.unlock();
     }
   }
 
   public Message loadMessage(UUID uuid) {
-    lock.lock();
+    messageDataLock.lock();
     try {
       return messageDatabase.get(uuid);
     } finally {
-      lock.unlock();
+      messageDataLock.unlock();
     }
   }
 
@@ -71,7 +71,7 @@ public class Database implements Storage {
   }
 
   public List<Message> loadMessageSince(Integer dstGroupId, long timestamp, boolean block) {
-    lock.lock();
+    messageDataLock.lock();
     // System.out.println("Fetching messages since "+timestamp);
     try {
       List<Message> messages;
@@ -84,7 +84,7 @@ public class Database implements Storage {
       }
       return messages;
     } finally {
-      lock.unlock();
+      messageDataLock.unlock();
     }
   }
 }
