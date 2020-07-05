@@ -27,6 +27,7 @@ public class UserAuthentication implements AuthStorage {
   public class User {
     private String username;
     private Set<Integer> groups;
+    private String publicKey; // used for getting the AES encryption key 
   
     public void addGroup(int groupId) {
       groups.add(Integer.valueOf(groupId));
@@ -44,9 +45,14 @@ public class UserAuthentication implements AuthStorage {
       return this.username;
     }
 
-    public User(String username) {
+    public String getPublicKey() {
+      return this.publicKey;
+    }
+
+    public User(String username, String publicKey) {
       this.username = username;
       this.groups = new HashSet<Integer>();
+      this.publicKey = publicKey;
     }
   }
   
@@ -125,14 +131,14 @@ public class UserAuthentication implements AuthStorage {
     }
   }
 
-  public User loginOrRegister(String username, String password) {
+  public User loginOrRegister(String username, String password, String publicKey) {
     UserWithPassword userInStorage = authDatabase.get(username);
 
     // register new user 
     if (userInStorage == null) {
       System.out.println("Registering new user with id: "+username+"password: "+password);
       // TODO: look up the group info 
-      UserWithPassword newUser = new UserWithPassword(new User(username), password);
+      UserWithPassword newUser = new UserWithPassword(new User(username, publicKey), password);
       authDatabase.put(username, newUser);
       return newUser.getUser();
     }

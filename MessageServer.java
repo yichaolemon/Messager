@@ -108,6 +108,7 @@ public class MessageServer {
         case "login":
           String username = components[1];
           String password = components[2];
+          String publicKey = components[3];
           if (username.equals(this.username) && isAuthenticated) {
             outputWriter.printf("error|Already logged in with username @%s\n", username);
             return;
@@ -115,7 +116,7 @@ public class MessageServer {
             outputWriter.printf("error|Currently logged in with username @%s, to log in to a different account, start a new session\n", this.username);
             return;
           }
-          UserAuthentication.User authResultUser = userAuthenticationStorage.loginOrRegister(username, password);
+          UserAuthentication.User authResultUser = userAuthenticationStorage.loginOrRegister(username, password, publicKey);
           if (authResultUser != null) {
             isAuthenticated = true;
             this.username = username;

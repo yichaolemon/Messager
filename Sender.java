@@ -44,6 +44,7 @@ public class Sender extends Thread {
   private StringBuilder msg; 
   private Socket senderSkt;
   private PrintWriter outputWriter;
+  private Encryption encryptionEntity;
 
   private class SReceiver extends Thread {
     private int currentGroup;
@@ -144,9 +145,9 @@ public class Sender extends Thread {
     if (loginMatch.matches()) {
       String username = loginMatch.group(1);
       String password = loginMatch.group(2);
-      outputWriter.printf("login|%s|%s\n", username, password);
+      outputWriter.printf("login|%s|%s|%s\n", username, password, encryptionEntity.getPublicKey());
       // TODO: hide password using some console password parser
-    } 
+    }
     else if (createGroupMatch.matches()) {
       String groupId = createGroupMatch.group(1);
       String usernameStr = createGroupMatch.group(2);
@@ -194,11 +195,13 @@ public class Sender extends Thread {
       senderSkt = new Socket(dstInetAddr, SERVER_PORT);
       System.out.println("Established connection with server at "+senderSkt.getRemoteSocketAddress().toString());
       outputWriter = new PrintWriter(senderSkt.getOutputStream(), true /*auto flushing*/);
+      encryptionEntity = new Encryption(2048);
     } catch (Exception e) {
       e.printStackTrace();
       return;
     }
     receiver = new SReceiver();
     receiver.start();
+    
   }
 }
