@@ -9,12 +9,16 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.ListIterator;
 
 /*
  * Protocol:
  * [Generally the command separator is the newline,
  * and within commands each component is separated by a pipe.]
- *
+ * 
  * Client can send these commands:
  * login|[username]|[password]
  * create group|[group id]|[username]|[username]|...
@@ -29,11 +33,11 @@ import java.util.HashMap;
  * [message]
  * exit
  * help -- to see the above options and usage 
- *
+ * 
  * Server sends back:
  * message|[group id]|[message]
  * error|[error message]
- * public keys|[username]|[key]|...
+ * public keys|[username]|[key]|,...
  * 
  */
 
@@ -168,8 +172,10 @@ public class Sender extends Thread {
       String usernameStr = createGroupMatch.group(2);
       String[] usernames = usernameStr.split(",", usernameStr.length());
       StringBuilder msg = new StringBuilder();
+      List<String> groupMemberKeys = new ArrayList<String>();
       boolean foundAllKeys = true;
 
+      publicKeysLock.lock();
       for (String username: usernames) {
         if (!publicKeys.containsKey(username)) {
           System.out.printf("user %s not logged in yet\n", username);
@@ -177,8 +183,24 @@ public class Sender extends Thread {
           continue;
         }
         String userPublicKey = publicKeys.get(username);
-        msg.append("|"+username+"|"+userPublicKey);
+        groupMemberKeys.add(userPublicKey);
       }
+      publicKeysLock.unlock();
+
+      // generating the AES keys 
+      List<String> encryptedAESKeyList;
+      try {
+        encryptedAESKeyList = encryptionEntity.createAndEncryptAESKey(Integer.parseInt(groupId), groupMemberKeys);
+      } catch (Exception e) {
+        e.printStackTrace();
+        return;
+      }
+
+      ListIterator<String> iter = encryptedAESKeyList.listIterator();
+      for (String username: usernames) {
+        msg.append("|"+username+"|"+iter.next());
+      }
+
       if (foundAllKeys) {
         outputWriter.printf("create group|%s%s\n", groupId, msg.toString());
       } 

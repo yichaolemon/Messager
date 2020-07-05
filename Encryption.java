@@ -20,6 +20,7 @@ public class Encryption {
   
   private final KeyPair keyPair;
   private final Cipher cipherDecrypt;
+  // maps groupId to AESkey for that group  
   private Map<Integer, SecretKey> AESKeys = new HashMap<Integer, SecretKey>(); 
   private final int keysize;
   private static final String publicKeyAlgorithm = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding";

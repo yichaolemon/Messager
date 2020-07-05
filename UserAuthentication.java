@@ -141,22 +141,20 @@ public class UserAuthentication implements AuthStorage {
     authDataLock.unlock();
   }
 
-  private List<String> loadKeysSinceOrNull(int index, String username) { 
+  private List<String> loadKeysSinceOrNull(int index/*, String username*/) { 
     if (usernameList.size() <= index) {
       return null;
     }
     ListIterator<String> iter = usernameList.listIterator(index);
     List<String> userPublicKeys  =  new ArrayList<String>();
-    authDataLock.lock();
     while (iter.hasNext()) {
       String user = iter.next();
-      if (user.equals(username)) {
-        continue;
-      }
-      String userKey = authDatabase.get(username).getUser().getPublicKey();
-      userPublicKeys.add(username+"|"+userKey);
+      // if (user.equals(username)) {
+        // continue;
+      // }
+      String userKey = authDatabase.get(user).getUser().getPublicKey();
+      userPublicKeys.add(user+"|"+userKey);
     }
-    authDataLock.unlock();
     return userPublicKeys.isEmpty() ? null : userPublicKeys;
   }
 
@@ -165,16 +163,17 @@ public class UserAuthentication implements AuthStorage {
     authDataLock.lock();
     try {
       List<String> userKeyPairs;
-      while ((userKeyPairs = loadKeysSinceOrNull(index, username)) == null || !block) {
+      while ((userKeyPairs = loadKeysSinceOrNull(index/*, username*/)) == null || !block) {
         try {
           hasNewUserKey.await();
         } catch (Exception e) {
+          e.printStackTrace();
           return null;
         }
       }
       return userKeyPairs;
     } finally {
-      // lock.unlock();
+      authDataLock.unlock();
     }
   }
 
@@ -195,8 +194,8 @@ public class UserAuthentication implements AuthStorage {
       return newUser.getUser();
     }
 
-    authDataLock.unlock();
     // authenticating existing user 
+    authDataLock.unlock();
     if (userInStorage.isVerifiedUser(username, password)) {
       return userInStorage.getUser();
     } else {

@@ -8,6 +8,10 @@ import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.util.UUID;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.HashMap;;
 
 
 public class MessageServer {
@@ -28,7 +32,6 @@ public class MessageServer {
     	private PrintWriter msgStream;
       private int maxIndexSent = 0;
       private boolean exit;
-
 
     	public void run() {
     		while (!exit && !serverSkt.isClosed()) {
@@ -166,11 +169,22 @@ public class MessageServer {
             return;
           }
           Integer groupIdToCreate = Integer.decode(components[1]);
-          List<String> usernameList = Arrays.asList(Arrays.copyOfRange(components, 2, components.length));
-          if (!messageStorage.createGroupIfNotExists(groupIdToCreate, usernameList, this.username)) {
-            outputWriter.println("error|Group already exists");
+          List<String> userEncryptedKeyPairList = Arrays.asList(Arrays.copyOfRange(components, 2, components.length));
+          ListIterator<String> iter = userEncryptedKeyPairList.listIterator();
+          List<String> userList = new ArrayList<String>();
+          Map<String, String> usernameToKey = new HashMap<String, String>();
+
+          while (iter.hasNext()) {
+            String user = iter.next();
+            userList.add(user);
+            usernameToKey.put(user, iter.next());
           }
-          userAuthenticationStorage.updateNewGroupInfo(groupIdToCreate, usernameList);
+
+          if (!messageStorage.createGroupIfNotExists(groupIdToCreate, usernameToKey)) {
+            outputWriter.println("error|Group already exists");
+            return;
+          }
+          userAuthenticationStorage.updateNewGroupInfo(groupIdToCreate, userList);
           break;
 
         case "fetch":

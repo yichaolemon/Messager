@@ -14,7 +14,8 @@ import java.util.Set;
 public class Database implements Storage {
   private Map<UUID, Message> messageDatabase = new HashMap<UUID, Message>();
   private Map<Integer, SortedMap<Long, UUID>> timestampIndex = new HashMap<Integer, SortedMap<Long, UUID>>();
-  private Map<Integer, Set<String>> userGroups = new HashMap<Integer, Set<String>>();
+  // maps groupId to username+AES key encrypted with their public key
+  private Map<Integer, Group> userGroups = new HashMap<Integer, Group>();
 
   private final Lock messageDataLock = new ReentrantLock();
   private final Condition hasMoreMessages = messageDataLock.newCondition();
@@ -45,15 +46,15 @@ public class Database implements Storage {
     }
   }
 
-  public boolean createGroupIfNotExists(Integer groupIdToCreate, List<String> usernameList, String username) {
-    if (userGroups.containsKey(groupIdToCreate)) {
+  public boolean createGroupIfNotExists(int groupIdToCreate, Map<String, String> usernameToKey) {
+    if (userGroups.containsKey(Integer.valueOf(groupIdToCreate))) {
       return false;
     }
     // now, create this group 
     // TODO: think about whether we want to make the user enter group name instread. 
     // also, do we want to check if these users all exist already? 
-    userGroups.put(groupIdToCreate, new HashSet<String>(usernameList));
-    timestampIndex.put(groupIdToCreate, new TreeMap<Long, UUID>());
+    userGroups.put(Integer.valueOf(groupIdToCreate), new Group(groupIdToCreate, usernameToKey));
+    timestampIndex.put(Integer.valueOf(groupIdToCreate), new TreeMap<Long, UUID>());
     return true;
   }
   
