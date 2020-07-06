@@ -28,7 +28,7 @@ public class Encryption {
   public String getPublicKey() {
     PublicKey key = keyPair.getPublic();
     byte[] keyByteArray = key.getEncoded();
-    System.out.println("format: " + key.getFormat());
+    // System.out.println("format: " + key.getFormat());
     String keyString = new String(Base64.getEncoder().encode(keyByteArray), StandardCharsets.UTF_8);
     return keyString;
   }
@@ -73,7 +73,7 @@ public class Encryption {
   
   public List<String> createAndEncryptAESKey(int groupId, List<String> publicKeyList) throws Exception {
     KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
-    keyGenerator.init(keysize);
+    keyGenerator.init(256);
     SecretKey aesKey = keyGenerator.generateKey();
     AESKeys.put(Integer.valueOf(groupId), aesKey);
 

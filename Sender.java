@@ -91,12 +91,13 @@ public class Sender extends Thread {
               String user = components[i];
               String key = components[i+1];
               publicKeys.put(user, key);
+              System.out.printf("user %s cerdentials received\n", user);
               i = i+2;
             }
             keysLock.unlock();
           } else if (components[0].equals("group key")) {
             Integer groupId = Integer.valueOf(components[1]);
-            System.out.printf("Now can access group %d\n", groupId.intValue());
+            System.out.printf("group %d encrytpted AES key received\n", groupId.intValue());
             String encryptedKey = components[2];
             keysLock.lock();
             groupKeys.put(groupId, encryptedKey);
