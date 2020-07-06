@@ -9,7 +9,6 @@ import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 import java.util.Map;
 import java.util.HashMap;
-import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ListIterator;
@@ -38,6 +37,7 @@ import java.util.ListIterator;
  * message|[group id]|[message]
  * error|[error message]
  * public keys|[username]|[key]|,...
+ * group key|[groupId]|[key encrypted]
  * 
  */
 
@@ -47,13 +47,16 @@ public class Sender extends Thread {
   private final int SERVER_PORT = 5100;
 
   private final Lock msgLock = new ReentrantLock(); // protecting msg 
-  private final Lock publicKeysLock = new ReentrantLock(); // protecting publicKeys
+  private final Lock keysLock = new ReentrantLock(); // protecting publicKeys
   private final Condition strNotEmpty = msgLock.newCondition();
   private StringBuilder msg; 
   private Socket senderSkt;
   private PrintWriter outputWriter;
   private Encryption encryptionEntity;
+  // maps username to their public key 
   private Map<String, String> publicKeys;
+  // maps groupId to its AES key encrypted 
+  private Map<Integer, String> groupKeys;
 
   private class SReceiver extends Thread {
     private int currentGroup;
@@ -83,14 +86,21 @@ public class Sender extends Thread {
             System.out.println("ERROR: " + components[1]);
           } else if (components[0].equals("public keys")) {
             int i = 1;
-            publicKeysLock.lock();
+            keysLock.lock();
             while (i < components.length) {
               String user = components[i];
               String key = components[i+1];
               publicKeys.put(user, key);
               i = i+2;
             }
-            publicKeysLock.unlock();
+            keysLock.unlock();
+          } else if (components[0].equals("group key")) {
+            Integer groupId = Integer.valueOf(components[1]);
+            System.out.printf("Now can access group %d\n", groupId.intValue());
+            String encryptedKey = components[2];
+            keysLock.lock();
+            groupKeys.put(groupId, encryptedKey);
+            keysLock.unlock();
           } else {
             int groupReceived = Integer.parseInt(components[1]);
             String messageReceived = components[2];
@@ -175,7 +185,7 @@ public class Sender extends Thread {
       List<String> groupMemberKeys = new ArrayList<String>();
       boolean foundAllKeys = true;
 
-      publicKeysLock.lock();
+      keysLock.lock();
       for (String username: usernames) {
         if (!publicKeys.containsKey(username)) {
           System.out.printf("user %s not logged in yet\n", username);
@@ -185,7 +195,7 @@ public class Sender extends Thread {
         String userPublicKey = publicKeys.get(username);
         groupMemberKeys.add(userPublicKey);
       }
-      publicKeysLock.unlock();
+      keysLock.unlock();
 
       // generating the AES keys 
       List<String> encryptedAESKeyList;
@@ -239,6 +249,7 @@ public class Sender extends Thread {
   public Sender(InetAddress dstInetAddr) {
     msg = new StringBuilder();
     publicKeys = new HashMap<String, String>();
+    groupKeys = new HashMap<Integer, String>();
     try {
       senderSkt = new Socket(dstInetAddr, SERVER_PORT);
       System.out.println("Established connection with server at "+senderSkt.getRemoteSocketAddress().toString());

@@ -8,15 +8,14 @@ import java.util.TreeMap;
 import java.util.SortedMap;
 import java.util.HashMap;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Set;
+
 
 public class Database implements Storage {
   private Map<UUID, Message> messageDatabase = new HashMap<UUID, Message>();
   private Map<Integer, SortedMap<Long, UUID>> timestampIndex = new HashMap<Integer, SortedMap<Long, UUID>>();
   // maps groupId to username+AES key encrypted with their public key
   private Map<Integer, Group> userGroups = new HashMap<Integer, Group>();
-
+  private final Lock userGroupLock = new ReentrantLock();
   private final Lock messageDataLock = new ReentrantLock();
   private final Condition hasMoreMessages = messageDataLock.newCondition();
 
@@ -46,18 +45,31 @@ public class Database implements Storage {
     }
   }
 
+  public Group loadGroup(int groupId) {
+    userGroupLock.lock();
+    Group group = userGroups.get(Integer.valueOf(groupId));
+    userGroupLock.unlock();
+    return group;
+  }
+
   public boolean createGroupIfNotExists(int groupIdToCreate, Map<String, String> usernameToKey) {
+    userGroupLock.lock();
     if (userGroups.containsKey(Integer.valueOf(groupIdToCreate))) {
+      userGroupLock.unlock();
       return false;
     }
     // now, create this group 
     // TODO: think about whether we want to make the user enter group name instread. 
     // also, do we want to check if these users all exist already? 
     userGroups.put(Integer.valueOf(groupIdToCreate), new Group(groupIdToCreate, usernameToKey));
+    userGroupLock.unlock();
+    messageDataLock.lock();
     timestampIndex.put(Integer.valueOf(groupIdToCreate), new TreeMap<Long, UUID>());
+    messageDataLock.unlock();
     return true;
   }
   
+  // this method is only called by  loadMessageSinceOrNull, which holds the `messageDataLock`
   private List<Message> loadMessageSinceOrNull(Integer dstGroupId, long timestamp) {
     SortedMap<Long, UUID> timeIndex = timestampIndex.get(dstGroupId);
     if (timeIndex == null) {

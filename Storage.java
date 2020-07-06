@@ -10,6 +10,7 @@ public interface Storage {
   public List<Message> loadMessageSince(Integer dstGroupId, long timestamp, boolean block);
   // username is here in case we would like to overload this in the future. 
   public boolean createGroupIfNotExists(int groupIdToCreate, Map<String, String> usernameToKey); 
+  public Group loadGroup(int groupId);
 
 }
 

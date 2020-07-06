@@ -24,87 +24,138 @@ public class MessageServer {
     private final Socket skt;
     private boolean isAuthenticated = false;
     private String username;
+    private PrintWriter outputWriter;
 
-    // MessageReporter waits for new data to send, and then sends it.
-    // Only the MessageReporter thread is allowed to write to the
-    // socket's output stream.
-    private class KeyReporter extends Thread {
-    	private PrintWriter msgStream;
-      private int maxIndexSent = 0;
+
+    // Reporter waits for something to get added to a database
+    // Its subclasses should implement `loadNextValue` and `serializeValue`.
+    private class Reporter<V> extends Thread {
       private boolean exit;
 
-    	public void run() {
-    		while (!exit && !serverSkt.isClosed()) {
-          reportKeys(userAuthenticationStorage.loadKeysSince(maxIndexSent+1, true, username));
-        }
-        System.out.println("keyReporter Thread exiting");
-    	}
-
-      private void reportKeys(List<String> userKeyPairList) {
-        if (userKeyPairList == null) {
-          exit = true;
-          return;
-        } 
-        maxIndexSent = Math.max(maxIndexSent, maxIndexSent+userKeyPairList.size());
-        StringBuilder msg = new StringBuilder();
-        for (String userKeyPair: userKeyPairList) {
-          msg.append("|"+userKeyPair);
-        }
-        msgStream.printf("public keys%s\n", msg.toString());
-      }
-
-    	public KeyReporter(PrintWriter msgStream, int maxIndexSent) {
-    		this.msgStream = msgStream;
-    		this.maxIndexSent = maxIndexSent;
-        this.exit = false;
-    	}
-    }
-
-    private class MessageReporter extends Thread {
-    	private PrintWriter msgStream;
-    	private int groupId;
-      private boolean exit;
-    	private long maxTimestampSent = 0;
-
-      /* private synchronized boolean getExit() {
-        return this.exit;
-      } */
-    
       public synchronized void close() {
         this.exit = true;
       }
 
-    	public void run() {
-    		while (!exit && !serverSkt.isClosed()) {
-          reportMessages(messageStorage.loadMessageSince(groupId, maxTimestampSent+1, true));
-        }
-        System.out.println("reporterThread exiting");
-    	}
-
-      private void reportMessages(List<Message> msgList) {
-        if (msgList == null) {
-          exit = true;
-          return;
-        } 
-        for (Message msg: msgList) {
-          String msgString = msg.toContentString();
-          // System.out.println("writing message: "+msgString+" at timestamp "+msg.getTimestamp());
-          msgStream.printf("message|%d|%s\n", groupId, msgString);
-          maxTimestampSent = Long.max(maxTimestampSent, msg.getTimestamp());
-        }
+      private synchronized boolean getExit() {
+        return this.exit;
       }
 
-    	public MessageReporter(PrintWriter msgStream, int groupId, long maxTimestampSent) {
-    		this.msgStream = msgStream;
-    		this.groupId = groupId;
-    		this.maxTimestampSent = maxTimestampSent;
+    	public void run() {
+    		while (!getExit() && !serverSkt.isClosed()) {
+          report(loadNextValue());
+        }
+        System.out.println("Reporter Thread exiting");
+    	}
+
+      protected V loadNextValue() {
+        // subclass must implement
+        return null;
+      }
+
+      protected String serializeValue(V value) {
+        // subclass must implement
+        return null;
+      }
+
+      private void report(V value) {
+        // won't close for blocking reporters that wait on CV
+        if (value == null) {
+          close();
+          return;
+        } 
+        outputWriter.printf("%s\n", serializeValue(value));
+      }
+
+    	protected Reporter() {
         this.exit = false;
     	}
     }
 
-    private PrintWriter outputWriter;
+    private class GroupKeyReporter extends Reporter<Integer> {
+      private int maxIndexSent = 0;
+
+      @Override
+      protected Integer loadNextValue() {
+        try {
+          int nextValue = userAuthenticationStorage.loadGroupUpdate(maxIndexSent, username);
+          maxIndexSent += 1;
+          return Integer.valueOf(nextValue);
+        } catch (Exception e) {
+          e.printStackTrace();
+          return null;
+        }
+      }
+
+      @Override
+      protected String serializeValue(Integer value) {
+        // look up the AES group key encrypted for username 
+        Group group = messageStorage.loadGroup(value.intValue());
+        String encryptedKey = group.getUserKeyInGroup(username);
+        return String.format("group key|%d|%s", value.intValue(), encryptedKey);
+      }
+
+      public GroupKeyReporter() {
+        super();
+      }
+    } 
+
+    private class KeyReporter extends Reporter<List<String>> {
+      private int maxIndexSent = 0;
+
+      @Override
+      protected List<String> loadNextValue() {
+        List<String> nextValue = userAuthenticationStorage.loadKeysSince(maxIndexSent+1, true, username);
+        maxIndexSent = Math.max(maxIndexSent, maxIndexSent+nextValue.size());
+        return nextValue;
+      }
+
+      @Override
+      protected String serializeValue(List<String> value) {
+        StringBuilder msg = new StringBuilder();
+        for (String userKeyPair: value) {
+          msg.append("|"+userKeyPair);
+        }
+        return String.format("public keys%s", msg.toString());
+      }
+
+    	public KeyReporter() {
+        super();
+    	}
+    }
+
+    private class MessageReporter extends Reporter<Message> {
+    	private int groupId;
+    	private long maxTimestampSent;
+      private List<Message> messageBuffer = null;
+
+      @Override
+      protected Message loadNextValue() {
+        if (messageBuffer == null || messageBuffer.size() == 0) {
+          messageBuffer = messageStorage.loadMessageSince(groupId, maxTimestampSent+1, true);
+        }
+        if (messageBuffer == null) {
+          return null;
+        }
+        Message msg = messageBuffer.remove(0);
+        maxTimestampSent = Long.max(maxTimestampSent, msg.getTimestamp());
+        return msg;
+      }
+
+      @Override
+      protected String serializeValue(Message msg) {
+        return String.format("message|%d|%s", groupId, msg.toContentString());
+      }
+
+    	public MessageReporter(int groupId, long maxTimestampSent) {
+        super();
+    		this.groupId = groupId;
+    		this.maxTimestampSent = maxTimestampSent;
+    	}
+    }
+
     private MessageReporter messageReporterThread;
     private KeyReporter keyReporterThread;
+    private GroupKeyReporter groupKeyReporterThread;
 
     public void run() {
       System.out.printf("Established connection with client at %s\n", skt.getRemoteSocketAddress().toString());
@@ -155,8 +206,10 @@ public class MessageServer {
           if (authResultUser != null) {
             isAuthenticated = true;
             this.username = username;
-            keyReporterThread = new KeyReporter(outputWriter, 0);
+            keyReporterThread = new KeyReporter();
             keyReporterThread.start();
+            groupKeyReporterThread = new GroupKeyReporter();
+            groupKeyReporterThread.start();
             // username is set if and only if user is authenticated 
           } else {
             outputWriter.println("error|Incorrect password entered");
@@ -196,10 +249,7 @@ public class MessageServer {
           long timestamp = Long.parseLong(components[2]);
           int groupId = Integer.parseInt(components[1]);
           if (userAuthenticationStorage.isVerifiedGroupMember(this.username, groupId)) {
-            messageReporterThread = new MessageReporter(
-                outputWriter,
-                groupId,
-                timestamp);
+            messageReporterThread = new MessageReporter(groupId, timestamp);
             messageReporterThread.start();
           } else {
             outputWriter.println("error|Unauthorized user for group");

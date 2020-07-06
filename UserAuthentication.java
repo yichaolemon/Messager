@@ -28,38 +28,46 @@ public class UserAuthentication implements AuthStorage {
   private Map<String, UserWithPassword> authDatabase; // maps from username to UserStorage 
   private List<String> usernameList = new ArrayList<String>(); // append only 
   private final Lock authDataLock = new ReentrantLock();
+  private final Condition hasNewGroupMember = authDataLock.newCondition();
   private final Condition hasNewUserKey = authDataLock.newCondition();
 
   // username should be unique
   // password should be hashed 
   public class User {
     private String username;
-    private Set<Integer> groups;
+    private Set<Integer> groupsSet;
+    private List<Integer> groupsList;
     private String publicKey; // used for getting the AES encryption key 
   
     public void addGroup(int groupId) {
-      groups.add(Integer.valueOf(groupId));
-    }
-
-    public Set<Integer> getGroups() {
-      return this.groups;
+      groupsSet.add(Integer.valueOf(groupId));
+      groupsList.add(Integer.valueOf(groupId));
     }
 
     public boolean isInGroup(int groupId) {
-      return groups.contains(Integer.valueOf(groupId));
+      return groupsSet.contains(Integer.valueOf(groupId));
     }
 
     public String getUsername() {
-      return this.username;
+      return username;
     }
 
     public String getPublicKey() {
-      return this.publicKey;
+      return publicKey;
+    }
+
+    public int getGroupCount() {
+      return groupsList.size();
+    }
+
+    public int getGroupAtIndex(int i) {
+      return groupsList.get(i).intValue();
     }
 
     public User(String username, String publicKey) {
       this.username = username;
-      this.groups = new HashSet<Integer>();
+      this.groupsSet = new HashSet<Integer>();
+      this.groupsList = new ArrayList<Integer>();
       this.publicKey = publicKey;
     }
   }
@@ -92,10 +100,6 @@ public class UserAuthentication implements AuthStorage {
       return user;
     }
 
-    public void updateUser(User userStruct) {
-      user = userStruct;
-    }
-
     public boolean isInGroup(int groupId) {
       return user.isInGroup(groupId);
     }
@@ -125,18 +129,31 @@ public class UserAuthentication implements AuthStorage {
     }
   }
 
+  public int loadGroupUpdate(int numOfGroups, String username) throws Exception {
+    authDataLock.lock();
+    try {
+      User user = authDatabase.get(username).getUser();
+      while (user.getGroupCount() <= numOfGroups) {
+        hasNewGroupMember.await();
+      }
+      return user.getGroupAtIndex(numOfGroups);
+    } finally {
+      authDataLock.unlock();
+    }
+  }
+
   public void updateNewGroupInfo(Integer groupId, List<String> usernameList) {
     authDataLock.lock();
     for (String username: usernameList) {
       UserWithPassword userContainer = authDatabase.get(username);
       if (userContainer == null) {
         // TODO: keep meta data for users that don't exist yet 
+        System.out.printf("User %s does not exist\n", username);
         continue;
       } 
       User user = userContainer.getUser();
       user.addGroup(Integer.valueOf(groupId));
-      userContainer.updateUser(user);
-      authDatabase.put(username, userContainer);
+      hasNewGroupMember.signalAll();
     }
     authDataLock.unlock();
   }
