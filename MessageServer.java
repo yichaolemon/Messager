@@ -72,13 +72,13 @@ public class MessageServer {
     }
 
     private class GroupKeyReporter extends Reporter<Integer> {
-      private int maxIndexSent = -1;
+      private int numGroupsSent = 0;
 
       @Override
       protected Integer loadNextValue() {
         try {
-          int nextValue = userAuthenticationStorage.loadGroupUpdate(maxIndexSent, username);
-          maxIndexSent += 1;
+          int nextValue = userAuthenticationStorage.loadGroupUpdate(numGroupsSent, username);
+          numGroupsSent += 1;
           return Integer.valueOf(nextValue);
         } catch (Exception e) {
           e.printStackTrace();
