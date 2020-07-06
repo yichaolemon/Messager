@@ -72,7 +72,7 @@ public class MessageServer {
     }
 
     private class GroupKeyReporter extends Reporter<Integer> {
-      private int maxIndexSent = 0;
+      private int maxIndexSent = -1;
 
       @Override
       protected Integer loadNextValue() {
@@ -100,7 +100,7 @@ public class MessageServer {
     } 
 
     private class KeyReporter extends Reporter<List<String>> {
-      private int maxIndexSent = 0;
+      private int maxIndexSent = -1;
 
       @Override
       protected List<String> loadNextValue() {
