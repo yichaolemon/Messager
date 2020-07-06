@@ -231,7 +231,7 @@ public class MessageServer {
             String user = iter.next();
             if (!usernameToKey.containsKey(user)) {
               userList.add(user);
-              usernameToKey.put(user, iter.next());
+              usernameToKey.put(user, user);
             }
           }
 
