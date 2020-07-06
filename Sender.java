@@ -55,17 +55,17 @@ public class Sender extends Thread {
   private Encryption encryptionEntity;
   // maps username to their public key 
   private Map<String, String> publicKeys;
-  // maps groupId to its AES key encrypted 
-  // private Map<Integer, String> groupKeys;
 
+  /* thread for receiving messages sent from either the server or 
+   * members of the chat group this client is currently in */
   private class SReceiver extends Thread {
-    private int currentGroup;
 
-    public synchronized void setCurrentGroup(int currentGroup) {
-      this.currentGroup = currentGroup;
+    public synchronized void setCurrentGroup(int groupId) {
+      currentGroup = groupId;
     }
+
     private synchronized int getCurrentGroup() {
-      return this.currentGroup;
+      return currentGroup;
     }
 
     public void run() {
@@ -92,26 +92,25 @@ public class Sender extends Thread {
               String user = components[i];
               String key = components[i+1];
               publicKeys.put(user, key);
-              System.out.printf("user %s credentials received\n", user);
+              System.out.printf("public key received from user %s\n", user);
               i = i+2;
             }
             keysLock.unlock();
           } /* group key */
           else if (components[0].equals("group key")) {
             Integer groupId = Integer.valueOf(components[1]);
-            System.out.printf("group %d encrypted AES key received\n", groupId.intValue());
+            System.out.printf("encrypted AES key received from group %d\n", groupId.intValue());
             String encryptedKey = components[2];
             encryptionEntity.decryptAESKey(groupId.intValue(), encryptedKey);
           } 
           /* message: needs to decrypt the received message */ 
           else {
             int groupReceived = Integer.parseInt(components[1]);
-            String metaInfo = components[2];
+            String senderAndTimeInfo = components[2];
             String encryptedMsg = components[3];
             if (groupReceived == currentGroup) {
-              System.out.println("trying to decrypt: "+encryptedMsg);
               String msg = encryptionEntity.decryptMessage(currentGroup, encryptedMsg);
-              System.out.println(metaInfo+msg);
+              System.out.println(senderAndTimeInfo+msg);
             }
           }
         }
@@ -203,6 +202,10 @@ public class Sender extends Thread {
       }
       keysLock.unlock();
 
+      if (!foundAllKeys) {
+        return;
+      }
+
       // generating the AES keys 
       List<String> encryptedAESKeyList;
       try {
@@ -217,12 +220,14 @@ public class Sender extends Thread {
         msg.append("|"+username+"|"+iter.next());
       }
 
-      if (foundAllKeys) {
-        outputWriter.printf("create group|%s%s\n", groupId, msg.toString());
-      } 
+      outputWriter.printf("create group|%s%s\n", groupId, msg.toString());
     }
     else if (enterGroupMatch.matches()) {
       int groupId = Integer.parseInt(enterGroupMatch.group(1));
+      if (!encryptionEntity.hasAESKeyForGroup(groupId)) {
+        System.out.println("Does not have access to group "+String.valueOf(groupId));
+        return;
+      }
       enterGroup(groupId);
     }
     else if (helpMatch.matches()) {
@@ -238,7 +243,7 @@ public class Sender extends Thread {
     currentGroup = groupId;
     receiver.setCurrentGroup(groupId);
     long timestamp = 0;  // TODO: remember the last timestamp for each group.  
-    outputWriter.printf("fetch|%d|%d\n", currentGroup, timestamp);
+    outputWriter.printf("fetch|%d|%d\n", groupId, timestamp);
   }
 
   private void handleMessage(String msg) {

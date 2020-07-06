@@ -15,14 +15,18 @@ import java.util.List;
 import java.util.ArrayList;
 import java.security.spec.X509EncodedKeySpec;
 
-
+/*  
+ * Encryption:
+ * Class that keeps track of the AESKeys for each group that the sender
+ * client has access to, as well as the RSA public and private key pair.
+ * Hence, it handles message encryption/decryption, as well as AES key decryption. 
+ */
 public class Encryption {
   
   private final KeyPair keyPair;
   private final Cipher cipherDecrypt;
   // maps groupId to AESkey for that group  
   private Map<Integer, SecretKey> AESKeys = new HashMap<Integer, SecretKey>(); 
-  private final int keysize;
   private static final String publicKeyAlgorithm = "RSA/ECB/OAEPWithSHA-256AndMGF1Padding";
 
   public String getPublicKey() {
@@ -41,31 +45,6 @@ public class Encryption {
 
     return kf.generatePublic(keySpec);
   }
-  /* private void keyGenerator() {
-    BigInteger p;
-    BigInteger q;
-    BigInteger qMinusOne;
-    BigInteger pMinusOne;
-    BigInteger lambda;
-
-    while (true) {
-      p = BigInteger.probablePrime(keysize, rnd);
-      q = BigInteger.probablePrime(keysize, rnd);
-      pMinusOne = p.subtract(BigInteger.ONE);
-      qMinusOne = q.subtract(BigInteger.ONE);
-      lambda = pMinusOne.multiply(qMinusOne).divide(pMinusOne.gcd(qMinusOne));
-      if (p.isProbablePrime(certainty)
-          && q.isProbablePrime(certainty)
-          && e.gcd(lambda).equals(BigInteger.ONE))
-      {
-        break;
-      }
-    }
-
-    PublicKey = p.multiply(q);
-    PrivateKey = e.modInverse(lambda);
-  } */
-
 
   public void decryptAESKey(int groupId, String AESKeyCiphertext) throws Exception {
     SecretKey decryptedAESKey = new SecretKeySpec(cipherDecrypt.doFinal(stringToBytes(AESKeyCiphertext)), "AES");
@@ -96,6 +75,10 @@ public class Encryption {
     return Base64.getDecoder().decode(msgString.getBytes(StandardCharsets.UTF_8));
   }
 
+  public boolean hasAESKeyForGroup(int groupId) {
+    return AESKeys.containsKey(Integer.valueOf(groupId));
+  }
+
   public String encryptMessage(int groupId, String message) throws Exception {
     byte[] plaintextBytes = message.getBytes(StandardCharsets.UTF_8);
     SecretKey aesKey = AESKeys.get(Integer.valueOf(groupId));
@@ -119,7 +102,6 @@ public class Encryption {
 
   // keysize is in number of bits 
   public Encryption(int keysize) throws Exception {
-    this.keysize = keysize;
     KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
     keyPairGenerator.initialize(keysize);
     keyPair = keyPairGenerator.genKeyPair();

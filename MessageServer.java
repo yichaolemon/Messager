@@ -229,15 +229,19 @@ public class MessageServer {
 
           while (iter.hasNext()) {
             String user = iter.next();
-            userList.add(user);
-            usernameToKey.put(user, iter.next());
+            if (!usernameToKey.containsKey(user)) {
+              userList.add(user);
+              usernameToKey.put(user, iter.next());
+            }
           }
 
           if (!messageStorage.createGroupIfNotExists(groupIdToCreate, usernameToKey)) {
             outputWriter.println("error|Group already exists");
-            return;
+          } else if (this.username == null || !usernameToKey.containsKey(this.username)) {
+            outputWriter.println("error|Can only create group that contains yourself");
+          } else {
+            userAuthenticationStorage.updateNewGroupInfo(groupIdToCreate, userList);
           }
-          userAuthenticationStorage.updateNewGroupInfo(groupIdToCreate, userList);
           break;
 
         case "fetch":
@@ -286,6 +290,7 @@ public class MessageServer {
 
     public ConnHandler(Socket skt) {
       this.dstAddr = skt.getInetAddress();
+      this.username = null; 
       this.skt = skt;
     }
   }
