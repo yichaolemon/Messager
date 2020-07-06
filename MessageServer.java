@@ -222,17 +222,19 @@ public class MessageServer {
             return;
           }
           Integer groupIdToCreate = Integer.decode(components[1]);
-          List<String> userEncryptedKeyPairList = Arrays.asList(Arrays.copyOfRange(components, 2, components.length));
-          ListIterator<String> iter = userEncryptedKeyPairList.listIterator();
+          String[] userEncryptedKeyPairList = Arrays.copyOfRange(components, 2, components.length);
           List<String> userList = new ArrayList<String>();
           Map<String, String> usernameToKey = new HashMap<String, String>();
+          int i = 0;
 
-          while (iter.hasNext()) {
-            String user = iter.next();
+          while (i < userEncryptedKeyPairList.length) {
+            String user = userEncryptedKeyPairList[i];
+            String key = userEncryptedKeyPairList[i+1];
             if (!usernameToKey.containsKey(user)) {
               userList.add(user);
-              usernameToKey.put(user, iter.next());
+              usernameToKey.put(user, key);
             }
+            i += 2;
           }
 
           if (!messageStorage.createGroupIfNotExists(groupIdToCreate, usernameToKey)) {
