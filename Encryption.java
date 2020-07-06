@@ -67,8 +67,9 @@ public class Encryption {
   } */
 
 
-  public void decryptAESKey(Integer groupId, byte[] AESKeyCiphertext) throws Exception {
-    AESKeys.put(groupId, new SecretKeySpec(cipherDecrypt.doFinal(AESKeyCiphertext), "AES"));
+  public void decryptAESKey(int groupId, String AESKeyCiphertext) throws Exception {
+    SecretKey decryptedAESKey = new SecretKeySpec(cipherDecrypt.doFinal(stringToBytes(AESKeyCiphertext)), "AES");
+    AESKeys.put(Integer.valueOf(groupId), decryptedAESKey);
   }
   
   public List<String> createAndEncryptAESKey(int groupId, List<String> publicKeyList) throws Exception {
@@ -95,7 +96,7 @@ public class Encryption {
     return Base64.getDecoder().decode(msgString.getBytes(StandardCharsets.UTF_8));
   }
 
-  public String encryptMessage(int groupId, String message)  throws Exception {
+  public String encryptMessage(int groupId, String message) throws Exception {
     byte[] plaintextBytes = message.getBytes(StandardCharsets.UTF_8);
     SecretKey aesKey = AESKeys.get(Integer.valueOf(groupId));
     Cipher cipherEncrypt = Cipher.getInstance("AES/ECB/PKCS5Padding");
@@ -109,9 +110,9 @@ public class Encryption {
   public String decryptMessage(int groupId, String messageCiphertext) throws Exception {
     byte[] b64cipherBytes = messageCiphertext.getBytes(StandardCharsets.UTF_8);
     byte[] cipherBytes = Base64.getDecoder().decode(b64cipherBytes);
-    SecretKey aesKey = AESKeys.get(groupId);
+    SecretKey aesKey = AESKeys.get(Integer.valueOf(groupId));
     Cipher cipherDecrypt = Cipher.getInstance("AES/ECB/PKCS5Padding");
-    cipherDecrypt.init(Cipher.ENCRYPT_MODE, aesKey);
+    cipherDecrypt.init(Cipher.DECRYPT_MODE, aesKey);
     byte[] plaintextBytes = cipherDecrypt.doFinal(cipherBytes);
     return new String(plaintextBytes, StandardCharsets.UTF_8);
   }

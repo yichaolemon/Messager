@@ -56,7 +56,7 @@ public class Sender extends Thread {
   // maps username to their public key 
   private Map<String, String> publicKeys;
   // maps groupId to its AES key encrypted 
-  private Map<Integer, String> groupKeys;
+  // private Map<Integer, String> groupKeys;
 
   private class SReceiver extends Thread {
     private int currentGroup;
@@ -101,9 +101,7 @@ public class Sender extends Thread {
             Integer groupId = Integer.valueOf(components[1]);
             System.out.printf("group %d encrypted AES key received\n", groupId.intValue());
             String encryptedKey = components[2];
-            keysLock.lock();
-            groupKeys.put(groupId, encryptedKey);
-            keysLock.unlock();
+            encryptionEntity.decryptAESKey(groupId.intValue(), encryptedKey);
           } 
           /* message: needs to decrypt the received message */ 
           else {
@@ -111,6 +109,7 @@ public class Sender extends Thread {
             String metaInfo = components[2];
             String encryptedMsg = components[3];
             if (groupReceived == currentGroup) {
+              System.out.println("trying to decrypt: "+encryptedMsg);
               String msg = encryptionEntity.decryptMessage(currentGroup, encryptedMsg);
               System.out.println(metaInfo+msg);
             }
@@ -264,7 +263,6 @@ public class Sender extends Thread {
   public Sender(InetAddress dstInetAddr) {
     msg = new StringBuilder();
     publicKeys = new HashMap<String, String>();
-    groupKeys = new HashMap<Integer, String>();
     try {
       senderSkt = new Socket(dstInetAddr, SERVER_PORT);
       System.out.println("Established connection with server at "+senderSkt.getRemoteSocketAddress().toString());
