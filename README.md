@@ -1,5 +1,5 @@
 # Messager
-Experimental messaging app written in Java. 
+Experimental end-to-end encrypted messaging app written in Java. 
 
 ## Requirements
 Docker, and it may help if you have more than one computers so that one of them can run the server code. I used a Raspberry Pi and it worked really great. 
