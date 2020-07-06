@@ -5,9 +5,15 @@ public class InputReader {
   private Sender sender;
 
   public void run() {
+
+    if (sender.isInRepl()) {
+      System.out.printf("❯ ");
+    }
     while (usrSysInput.hasNextLine()) {
-      // TODO: Check whether the nextline is empty 
       String line = usrSysInput.nextLine();
+      if (sender.isInRepl()) {
+        System.out.printf("❯ ");
+      }
       sender.writeMsg(line);
     }
   }

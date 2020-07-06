@@ -64,10 +64,6 @@ public class Sender extends Thread {
       currentGroup = groupId;
     }
 
-    private synchronized int getCurrentGroup() {
-      return currentGroup;
-    }
-
     public void run() {
       Scanner inStream;
       try {
@@ -83,7 +79,7 @@ public class Sender extends Thread {
           // System.out.println(nl);
           String[] components = nl.split("\\|", 100);
           if (components[0].equals("error")) {
-            System.out.println("ERROR: " + components[1]);
+            System.out.printf("ERROR: %s\n❯ ", components[1]);
           } /* public keys */
           else if (components[0].equals("public keys")) {
             int i = 1;
@@ -92,14 +88,22 @@ public class Sender extends Thread {
               String user = components[i];
               String key = components[i+1];
               publicKeys.put(user, key);
-              System.out.printf("public key received from user %s\n", user);
+              String str = "";
+              if (isInRepl()) {
+                str = "❯ ";
+              }
+              System.out.printf("public key received from user %s\n%s", user, str);
               i = i+2;
             }
             keysLock.unlock();
           } /* group key */
           else if (components[0].equals("group key")) {
             Integer groupId = Integer.valueOf(components[1]);
-            System.out.printf("encrypted AES key received from group %d\n", groupId.intValue());
+            String str = "";
+            if (isInRepl()) {
+              str = "❯ ";
+            }
+            System.out.printf("encrypted AES key received from group %d\n%s", groupId.intValue(), str);
             String encryptedKey = components[2];
             encryptionEntity.decryptAESKey(groupId.intValue(), encryptedKey);
           } 
@@ -110,7 +114,7 @@ public class Sender extends Thread {
             String encryptedMsg = components[3];
             if (groupReceived == currentGroup) {
               String msg = encryptionEntity.decryptMessage(currentGroup, encryptedMsg);
-              System.out.println(senderAndTimeInfo+msg);
+              System.out.printf("%s\n", senderAndTimeInfo+msg);
             }
           }
         }
@@ -119,6 +123,10 @@ public class Sender extends Thread {
         return;
       }
     }
+  }
+
+  public boolean isInRepl() {
+    return inRepl;
   }
 
   public void writeMsg(String line) {
@@ -165,10 +173,10 @@ public class Sender extends Thread {
   }
 
   // Regex parsing 
-  private static final Pattern loginPattern = Pattern.compile("^login (\\w+) (\\S+)$");
-  private static final Pattern createGroupPattern = Pattern.compile("^create group (\\d+) (\\w+(,\\w+)*)$");
-  private static final Pattern enterGroupPattern = Pattern.compile("^enter group (\\d+)$");
-  private static final Pattern helpPattern = Pattern.compile("^help$");
+  private static final Pattern loginPattern = Pattern.compile("^\\s*login\\s+(\\w+)\\s+(\\S+)\\s*$");
+  private static final Pattern createGroupPattern = Pattern.compile("^\\s*create\\s+group\\s+(\\d+)\\s+(\\w+(,\\s*\\w+)*)\\s*$");
+  private static final Pattern enterGroupPattern = Pattern.compile("^\\s*enter\\s+group\\s+(\\d+)\\s*$");
+  private static final Pattern helpPattern = Pattern.compile("^\\s*help\\s*$");
 
   private void handleCommand(String command) {
     Matcher loginMatch = loginPattern.matcher(command);
@@ -185,7 +193,7 @@ public class Sender extends Thread {
     else if (createGroupMatch.matches()) {
       String groupId = createGroupMatch.group(1);
       String usernameStr = createGroupMatch.group(2);
-      String[] usernames = usernameStr.split(",", usernameStr.length());
+      String[] usernames = usernameStr.split("\\s*,\\s*", usernameStr.length());
       StringBuilder msg = new StringBuilder();
       List<String> groupMemberKeys = new ArrayList<String>();
       boolean foundAllKeys = true;
@@ -193,7 +201,7 @@ public class Sender extends Thread {
       keysLock.lock();
       for (String username: usernames) {
         if (!publicKeys.containsKey(username)) {
-          System.out.printf("user %s not logged in yet\n", username);
+          System.out.printf("user @%s not logged in yet\n❯ ", username);
           foundAllKeys = false;
           continue;
         }
@@ -225,30 +233,32 @@ public class Sender extends Thread {
     else if (enterGroupMatch.matches()) {
       int groupId = Integer.parseInt(enterGroupMatch.group(1));
       if (!encryptionEntity.hasAESKeyForGroup(groupId)) {
-        System.out.println("Does not have access to group "+String.valueOf(groupId));
+        System.out.printf("Does not have access to group %s\n❯ ", String.valueOf(groupId));
         return;
       }
       enterGroup(groupId);
     }
     else if (helpMatch.matches()) {
-      System.out.println("Available commands: login, create group, enter group");
+      System.out.printf("Available commands: login, create group, enter group\n❯ ");
     }
     else {
-      System.out.println("unrecognized command");
+      System.out.printf("unrecognized command\n❯ ");
     }
   }
 
   private void enterGroup(int groupId) {
-    inRepl = false; // TODO: this is incorrect!! 
+    inRepl = false;
     currentGroup = groupId;
     receiver.setCurrentGroup(groupId);
     long timestamp = 0;  // TODO: remember the last timestamp for each group.  
+    System.out.printf("**** You have entered group %d **** ❮\n", groupId);
     outputWriter.printf("fetch|%d|%d\n", groupId, timestamp);
   }
 
   private void handleMessage(String msg) {
     if (msg.equals("exit")) {
       inRepl = true;
+      System.out.printf("❮ **** You have exited group %d **** ❯\n❯ ", this.currentGroup);
       outputWriter.printf("close|%d\n", currentGroup);
       return;
     }

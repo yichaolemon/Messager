@@ -59,7 +59,7 @@ public class MessageServer {
 
       private void report(V value) {
         // won't close for blocking reporters that wait on CV
-        if (value == null) {
+        if (value == null || this.getExit()) {
           close();
           return;
         } 
