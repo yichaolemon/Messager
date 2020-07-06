@@ -43,7 +43,7 @@ public class Message {
     Date date = new Date(this.getTimestamp());
     stringBuilder.append(this.getSrcUsername());
     stringBuilder.append(formatter.format(date));
-    stringBuilder.append(this.getContent());
+    stringBuilder.append("|"+this.getContent());
     return stringBuilder.toString();
   }
 

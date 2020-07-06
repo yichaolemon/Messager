@@ -84,29 +84,35 @@ public class Sender extends Thread {
           String[] components = nl.split("\\|", 100);
           if (components[0].equals("error")) {
             System.out.println("ERROR: " + components[1]);
-          } else if (components[0].equals("public keys")) {
+          } /* public keys */
+          else if (components[0].equals("public keys")) {
             int i = 1;
             keysLock.lock();
             while (i < components.length) {
               String user = components[i];
               String key = components[i+1];
               publicKeys.put(user, key);
-              System.out.printf("user %s cerdentials received\n", user);
+              System.out.printf("user %s credentials received\n", user);
               i = i+2;
             }
             keysLock.unlock();
-          } else if (components[0].equals("group key")) {
+          } /* group key */
+          else if (components[0].equals("group key")) {
             Integer groupId = Integer.valueOf(components[1]);
-            System.out.printf("group %d encrytpted AES key received\n", groupId.intValue());
+            System.out.printf("group %d encrypted AES key received\n", groupId.intValue());
             String encryptedKey = components[2];
             keysLock.lock();
             groupKeys.put(groupId, encryptedKey);
             keysLock.unlock();
-          } else {
+          } 
+          /* message: needs to decrypt the received message */ 
+          else {
             int groupReceived = Integer.parseInt(components[1]);
-            String messageReceived = components[2];
-            if (groupReceived == this.getCurrentGroup()) {
-              System.out.println(messageReceived);
+            String metaInfo = components[2];
+            String encryptedMsg = components[3];
+            if (groupReceived == currentGroup) {
+              String msg = encryptionEntity.decryptMessage(currentGroup, encryptedMsg);
+              System.out.println(metaInfo+msg);
             }
           }
         }
@@ -242,7 +248,15 @@ public class Sender extends Thread {
       outputWriter.printf("close|%d\n", currentGroup);
       return;
     }
-    outputWriter.printf("send|%d|%s\n", currentGroup, msg);
+    
+    String encryptedMsg;
+    try {
+      encryptedMsg = encryptionEntity.encryptMessage(currentGroup, msg);
+    } catch (Exception e) {
+      e.printStackTrace();
+      return;
+    }
+    outputWriter.printf("send|%d|%s\n", currentGroup, encryptedMsg);
   }
 
   private SReceiver receiver;
