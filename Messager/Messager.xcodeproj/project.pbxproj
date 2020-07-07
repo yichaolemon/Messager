@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2A56975924B459C30013FE95 /* NSRegularExpression+convenience.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A56975824B459C30013FE95 /* NSRegularExpression+convenience.swift */; };
 		2A71A1C224AADCE0006275E0 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A71A1C124AADCE0006275E0 /* AppDelegate.swift */; };
 		2A71A1C424AADCE0006275E0 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A71A1C324AADCE0006275E0 /* ContentView.swift */; };
 		2A71A1C624AADCEA006275E0 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2A71A1C524AADCEA006275E0 /* Assets.xcassets */; };
@@ -16,6 +17,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		2A56975824B459C30013FE95 /* NSRegularExpression+convenience.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSRegularExpression+convenience.swift"; sourceTree = "<group>"; };
 		2A71A1BE24AADCE0006275E0 /* Messager.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Messager.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2A71A1C124AADCE0006275E0 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		2A71A1C324AADCE0006275E0 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -60,6 +62,7 @@
 				2A71A1C124AADCE0006275E0 /* AppDelegate.swift */,
 				2A71A1C324AADCE0006275E0 /* ContentView.swift */,
 				2A71A1D424AAE8A1006275E0 /* DesktopClient.swift */,
+				2A56975824B459C30013FE95 /* NSRegularExpression+convenience.swift */,
 				2A71A1C524AADCEA006275E0 /* Assets.xcassets */,
 				2A71A1CA24AADCEA006275E0 /* Main.storyboard */,
 				2A71A1CD24AADCEA006275E0 /* Info.plist */,
@@ -151,6 +154,7 @@
 				2A71A1C424AADCE0006275E0 /* ContentView.swift in Sources */,
 				2A71A1D524AAE8A1006275E0 /* DesktopClient.swift in Sources */,
 				2A71A1C224AADCE0006275E0 /* AppDelegate.swift in Sources */,
+				2A56975924B459C30013FE95 /* NSRegularExpression+convenience.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

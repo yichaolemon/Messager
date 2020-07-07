@@ -13,11 +13,15 @@ import SwiftUI
 class AppDelegate: NSObject, NSApplicationDelegate {
 
     var window: NSWindow!
-
+    var sender: Sender!
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        self.sender = Sender(host: "raspberrypi.local", port: 5100)
         // Create the SwiftUI view that provides the window contents.
-        let contentView = ContentView()
+        let contentView = ContentView(sender: self.sender)
+        DispatchQueue.global().async {
+            self.sender.connectToServer()
+        }
 
         // Create the window and set the content view. 
         window = NSWindow(
