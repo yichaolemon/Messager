@@ -26,6 +26,7 @@ struct ContentView: View {
     
     @State private var message: String = ""
     @State private var sentMessage: String = ""
+    @State private var hasLoggedIn: Bool = false
     
     private unowned var sender: Sender!
     
@@ -40,18 +41,23 @@ struct ContentView: View {
     func sendMessage() {
         sentMessage = message
         self.sender.handle(input: sentMessage)
+        message = ""
     }
     
     var body: some View {
-        HStack {
-            Text(senderDelegate.receivedMessage ?? "").frame(maxWidth: .infinity, maxHeight: .infinity)
-            VStack {
-                Text(senderDelegate.errMessage ?? "").frame(maxWidth: .infinity, maxHeight: .infinity)
-                Text(sentMessage).frame(maxWidth: .infinity, maxHeight: .infinity)
-                TextField("Write a message...", text: $message, onCommit: {
-                    self.sendMessage()
-                })
-            }
+        if !hasLoggedIn {
+            return AnyView(LoginView(sender: sender, hasLoggedIn: $hasLoggedIn))
+        } else {
+            return AnyView(HStack {
+                Text(senderDelegate.receivedMessage ?? "").frame(maxWidth: .infinity, maxHeight: .infinity)
+                VStack {
+                    Text(senderDelegate.errMessage ?? "").frame(maxWidth: .infinity, maxHeight: .infinity)
+                    Text(sentMessage).frame(maxWidth: .infinity, maxHeight: .infinity)
+                    TextField("Write a message...", text: $message, onCommit: {
+                        self.sendMessage()
+                    })
+                }
+            })
         }
     }
 }

@@ -18,12 +18,18 @@ protocol SenderDelegate {
     func receivedMessage(_ message: String)
 }
 
+// informs user of new groups they have joined
+protocol SenderGroupDelegate {
+    func joinedGroup(_ groupName: String)
+}
+
 class Sender: NSObject, StreamDelegate {
     var inputStream: InputStream?
     var outputStream: OutputStream?
     var host: String
     var port: Int
     var delegate: SenderDelegate?
+    var groupDelegate: SenderGroupDelegate?
     
     private var inRepl = true
     private var currentGroup: Int?
@@ -46,6 +52,10 @@ class Sender: NSObject, StreamDelegate {
         default:
             break
         }
+    }
+    
+    func handleReceived(data: String) {
+        
     }
     
     func connectToServer() {
@@ -79,12 +89,29 @@ class Sender: NSObject, StreamDelegate {
         return output
     }
     
+    private func readline() -> String {
+        var output = ""
+        while true {
+            let bufferRead: String = self.read()
+            if let range: Range<String.Index> = bufferRead.range(of: "\n") {
+                bufferRead.prefix(upTo: range.lowerBound)
+                
+                
+            }
+            
+        }
+    }
+    
     func handle(input: String) {
         if inRepl {
             handle(command: input)
         } else {
             handle(message: input)
         }
+    }
+    
+    func login(username: String, password: String) {
+        write("login|\(username)|\(password)|TODO public key\n")
     }
     
     let loginPattern = NSRegularExpression("^\\s*login\\s+(\\w+)\\s+(\\S+)\\s*$")
@@ -95,9 +122,7 @@ class Sender: NSObject, StreamDelegate {
     
     private func handle(command: String) {
         if let loginMatch = loginPattern.matchGroups(command) {
-            let username = loginMatch[1]
-            let password = loginMatch[2]
-            write("login|\(username)|\(password)|TODO public key\n")
+            login(username: loginMatch[1], password: loginMatch[2])
         } else if let createGroupMatch = createGroupPattern.matchGroups(command) {
             let groupId = createGroupMatch[1]
             let usernameStr = createGroupMatch[2]
