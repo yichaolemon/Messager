@@ -49,8 +49,9 @@ struct ContentView: View {
             return AnyView(LoginView(sender: sender, hasLoggedIn: $hasLoggedIn))
         } else {
             return AnyView(HStack {
-                Text(senderDelegate.receivedMessage ?? "").frame(maxWidth: .infinity, maxHeight: .infinity)
+                SidebarView(sender: sender)
                 VStack {
+                    Text(senderDelegate.receivedMessage ?? "").frame(maxWidth: .infinity, maxHeight: .infinity)
                     Text(senderDelegate.errMessage ?? "").frame(maxWidth: .infinity, maxHeight: .infinity)
                     Text(sentMessage).frame(maxWidth: .infinity, maxHeight: .infinity)
                     TextField("Write a message...", text: $message, onCommit: {

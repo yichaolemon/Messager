@@ -11,6 +11,8 @@ import Foundation
 enum SenderError: Error {
     case notInGroup
     case invalidInput
+    case serverError(String)
+    case unrecognizedServerResponse(String)
 }
 
 protocol SenderDelegate {
@@ -21,6 +23,7 @@ protocol SenderDelegate {
 // informs user of new groups they have joined
 protocol SenderGroupDelegate {
     func joinedGroup(_ groupName: String)
+    func hasNewContact(_ username: String)
 }
 
 class Sender: NSObject, StreamDelegate {
@@ -32,7 +35,7 @@ class Sender: NSObject, StreamDelegate {
     var groupDelegate: SenderGroupDelegate?
     
     private var inRepl = true
-    private var currentGroup: Int?
+    private var currentGroup: String?
     
     init(host: String, port: Int) {
         self.host = host
@@ -46,7 +49,8 @@ class Sender: NSObject, StreamDelegate {
             break
         case .hasBytesAvailable:
             if aStream == inputStream {
-                self.delegate?.receivedMessage(read())
+//                self.delegate?.receivedMessage(readline())
+                handleReceived(data: readline())
             }
             break
         default:
@@ -55,7 +59,31 @@ class Sender: NSObject, StreamDelegate {
     }
     
     func handleReceived(data: String) {
-        
+        let components: [Substring] = data.split(separator: "|")
+        switch components[0] {
+        case "message":
+            let groupName = components[1]
+            let senderAndTimeInfo = components[2]
+            let encryptedMsg = components[3]
+            // TODO: decrypt this message
+            if String(groupName) == self.currentGroup {
+                self.delegate?.receivedMessage(String(senderAndTimeInfo) + encryptedMsg)
+            }
+        case "error":
+            let errorMsg = components[1]
+            self.delegate?.onError(SenderError.serverError(String(errorMsg)))
+        case "public keys":
+            for i in 1..<components.count {
+                if i%2 == 1 {
+                    self.groupDelegate?.hasNewContact(String(components[i]))
+                }
+            }
+        case "group key":
+            let groupName = components[1]
+            self.groupDelegate?.joinedGroup(String(groupName))
+        default:
+            self.delegate?.onError(SenderError.unrecognizedServerResponse(data))
+        }
     }
     
     func connectToServer() {
@@ -89,16 +117,21 @@ class Sender: NSObject, StreamDelegate {
         return output
     }
     
+    private var readBuffer: String = ""
     private func readline() -> String {
         var output = ""
         while true {
-            let bufferRead: String = self.read()
-            if let range: Range<String.Index> = bufferRead.range(of: "\n") {
-                bufferRead.prefix(upTo: range.lowerBound)
-                
-                
+            if readBuffer.isEmpty {
+                readBuffer = read()
             }
-            
+            if let range: Range<String.Index> = readBuffer.range(of: "\n") {
+                output.append(contentsOf: readBuffer.prefix(upTo: range.lowerBound))
+                readBuffer = String(readBuffer.suffix(from: range.upperBound))
+                return output
+            } else {
+                output.append(readBuffer)
+                readBuffer.removeAll(keepingCapacity: true)
+            }
         }
     }
     
@@ -134,10 +167,7 @@ class Sender: NSObject, StreamDelegate {
             }
             write("create group|\(groupId)\(msg)\n")
         } else if let enterGroupMatch = enterGroupPattern.matchGroups(command) {
-            guard let groupId = Int(enterGroupMatch[1]) else {
-                self.delegate?.onError(SenderError.invalidInput)
-                return
-            }
+            let groupId = enterGroupMatch[1]
             // TODO: check AES key for group
             enter(group: groupId)
         } else if helpPattern.matchGroups(command) != nil {
@@ -148,7 +178,7 @@ class Sender: NSObject, StreamDelegate {
         }
     }
     
-    private func enter(group: Int) {
+    private func enter(group: String) {
         self.inRepl = false
         self.currentGroup = group
         let timestamp = 0  // TODO: remember the last timestamp for each group
@@ -156,8 +186,8 @@ class Sender: NSObject, StreamDelegate {
     }
     
     private func handle(message: String) {
-        if let groupId = currentGroup {
-            write("message|\(groupId)|\(message)\n")
+        if let groupName = currentGroup {
+            write("message|\(groupName)|\(message)\n")
         } else {
             self.delegate?.onError(SenderError.notInGroup)
         }
